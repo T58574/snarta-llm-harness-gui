@@ -1,0 +1,9 @@
+# Force LF line endings for all text and source files across platforms
+* text=auto eol=lf
+*.rs text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

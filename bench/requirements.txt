@@ -1,0 +1,7 @@
+# Optional dependencies for Snarta MoE Benchmark.
+# The benchmark script (bench_ncmoe.py) works with pure Python 3 standard library,
+# but installing these packages provides optional terminal enhancements.
+
+tabulate>=0.9.0
+psutil>=5.9.0
+requests>=2.31.0

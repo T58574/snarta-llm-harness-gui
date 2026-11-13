@@ -1,0 +1,227 @@
+[
+  {
+    "id": 1,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In Rust, what does `\"héllo\".len()` return?",
+    "choices": ["5", "4", "6", "7"],
+    "answer": "C"
+  },
+  {
+    "id": 2,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In Rust, what is `std::mem::size_of::<char>()`?",
+    "choices": ["1 byte", "2 bytes", "8 bytes", "4 bytes"],
+    "answer": "D"
+  },
+  {
+    "id": 3,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In a `cargo build --release` (not debug) build, what happens on `let x: i32 = i32::MAX; let y = x + 1;`?",
+    "choices": [
+      "Panics with 'attempt to add with overflow'",
+      "Returns a `Result::Err`",
+      "Undefined behavior",
+      "Wraps to i32::MIN (two's-complement wrap; debug builds panic instead)"
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 4,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In Rust, `String::from(\"🦀\").len()` returns:",
+    "choices": ["1", "2", "8", "4"],
+    "answer": "D"
+  },
+  {
+    "id": 5,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Which statement about `Mutex<T>` auto-trait impls is correct?",
+    "choices": [
+      "`Mutex<T>: Sync` requires `T: Sync`",
+      "`Mutex<T>: Sync` only requires `T: 'static`",
+      "`Mutex<T>: Sync` requires `T: Send` (the mutex makes T shareable across threads even if T itself is not Sync)",
+      "`Mutex<T>` is never Sync"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 6,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: `struct S { a: Vec<u8>, b: Vec<u8> }`. When an S is dropped, what's the drop order of its fields?",
+    "choices": [
+      "`a` then `b` (declaration order)",
+      "`b` then `a` (reverse declaration order, like locals)",
+      "Dependent on the compiler",
+      "Undefined"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 7,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: which of these types is `!Send`?",
+    "choices": ["`Arc<i32>`", "`Box<i32>`", "`i32`", "`Rc<i32>`"],
+    "answer": "D"
+  },
+  {
+    "id": 8,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: `Cell<i32>` is:",
+    "choices": [
+      "Send and Sync",
+      "!Send and !Sync",
+      "Send but !Sync (movable across threads, but not shareable by reference)",
+      "!Send but Sync"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 9,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In `tokio::select! { a = fut_a => ..., b = fut_b => ... }`, when `fut_a` completes first, what happens to `fut_b`?",
+    "choices": [
+      "It continues running in the background",
+      "It is awaited to completion before continuing",
+      "It panics unless `fut_b` is `Unpin`",
+      "It is dropped (cancelled); this is why futures must be cancellation-safe"
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 10,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: `PhantomData<T>` vs `PhantomData<fn() -> T>` — correct statement?",
+    "choices": [
+      "Identical at the type-system level",
+      "`PhantomData<T>` is contravariant in T; `PhantomData<fn() -> T>` is covariant",
+      "`PhantomData<fn() -> T>` behaves as if the struct *returns* a T — contravariant and does NOT propagate T's auto-traits (Send/Sync/drop-check); `PhantomData<T>` behaves as if it *owns* a T",
+      "Both deprecated in favor of `PhantomPinned`"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 11,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: `let mut v = vec![1]; let r: &i32 = &v[0]; v.push(2); println!(\"{}\", r);` — result?",
+    "choices": [
+      "Compiles and prints 1",
+      "Compile error: `v` cannot be borrowed as mutable while `r` (immutable borrow) is live and used later",
+      "Runtime panic",
+      "Prints garbage because the Vec reallocated"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 12,
+    "subject": "rust_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Rust: `#[repr(C)]` struct with fields `(u8, u32, u8)` — typical size?",
+    "choices": ["6 bytes", "8 bytes", "12 bytes", "16 bytes"],
+    "answer": "C"
+  },
+  {
+    "id": 13,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In JavaScript, what happens when you evaluate `1000000.toString()`?",
+    "choices": [
+      "SyntaxError: the `.` is consumed by the numeric literal parser (use `1000000..toString()` or `(1000000).toString()`)",
+      "Returns \"1000000\"",
+      "Returns \"1e+6\"",
+      "Returns 1000000 (the number)"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 14,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In JavaScript, `[] == ![]` evaluates to:",
+    "choices": ["true", "false", "undefined", "TypeError"],
+    "answer": "A"
+  },
+  {
+    "id": 15,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In JavaScript, `[1,2,3].map(parseInt)` returns:",
+    "choices": ["[1, 2, 3]", "Error", "[1, NaN, NaN]", "[NaN, NaN, NaN]"],
+    "answer": "C"
+  },
+  {
+    "id": 16,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In TypeScript, `function isString(x: unknown): x is string { return typeof x === 'string'; }` — what does `x is string` do?",
+    "choices": [
+      "Runtime cast",
+      "Returns a boolean and a string",
+      "Prevents x from being null",
+      "Declares a type predicate that narrows `x` to `string` in the caller's matching branch"
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 17,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "`const x = obj satisfies Record<string, number>` vs `const x: Record<string, number> = obj` — practical difference?",
+    "choices": [
+      "Alias for `as`",
+      "Runtime cast",
+      "`satisfies` validates `obj` but keeps the expression's inferred (typically narrower) type; the annotation widens to `Record<string, number>`",
+      "Only valid for functions"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 18,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "TypeScript: `const enum Direction { Up, Down }` vs `enum Direction { Up, Down }` — practical difference?",
+    "choices": [
+      "Identical output",
+      "`const enum` is deprecated",
+      "`enum` is removed in TS 5.x",
+      "`const enum` is inlined at use sites (no runtime object); `enum` compiles to a runtime object with reverse mapping"
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 19,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In TypeScript, `Array<string | number>.filter(x => typeof x === 'string')` returns type:",
+    "choices": [
+      "`string[]`",
+      "`never[]`",
+      "`Array<string | number>` — the callback must be a type predicate `(x): x is string` to narrow",
+      "`unknown[]`"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 20,
+    "subject": "typescript_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In TypeScript, `interface Foo { a: number }` and later `interface Foo { b: string }` in the same scope — result?",
+    "choices": [
+      "Compile error: duplicate identifier",
+      "The second silently overwrites the first",
+      "Only works in `.d.ts` files",
+      "Interfaces merge (declaration merging); Foo has both a and b"
+    ],
+    "answer": "D"
+  }
+]

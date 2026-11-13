@@ -1,0 +1,1562 @@
+[
+  {
+    "id": 1,
+    "subject": "college_computer_science",
+    "category": "STEM",
+    "question": "Which of the following algorithm paradigms solves a problem by combining solutions to subproblems that overlap, using memoization or a table?",
+    "choices": [
+      "Dynamic programming",
+      "Greedy algorithm",
+      "Divide and conquer",
+      "Branch and bound"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 2,
+    "subject": "college_computer_science",
+    "category": "STEM",
+    "question": "In a B-Tree of order m (under the Knuth definition), what is the maximum number of children that any internal node can have?",
+    "choices": [
+      "m - 1",
+      "m",
+      "2m",
+      "ceil(m / 2)"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 3,
+    "subject": "college_computer_science",
+    "category": "STEM",
+    "question": "Which asymptotic notation represents an asymptotic upper bound on the worst-case running time of an algorithm?",
+    "choices": [
+      "Big-Omega (\u03a9)",
+      "Big-Theta (\u0398)",
+      "Big-O (O)",
+      "Little-o (o)"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 4,
+    "subject": "college_computer_science",
+    "category": "STEM",
+    "question": "What problem does Dijkstra's algorithm fail to solve correctly when applied to a directed graph?",
+    "choices": [
+      "Graphs with cycles",
+      "Graphs with negative edge weights",
+      "Dense graphs",
+      "Disconnected graphs"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 5,
+    "subject": "college_computer_science",
+    "category": "STEM",
+    "question": "In relational database normalization, a table is in Third Normal Form (3NF) if it is in 2NF and has no:",
+    "choices": [
+      "Partial dependencies",
+      "Transitive dependencies",
+      "Multi-valued dependencies",
+      "Join dependencies"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 6,
+    "subject": "elementary_mathematics",
+    "category": "STEM",
+    "question": "If 3x + 7 = 22, what is the value of 2x - 1?",
+    "choices": [
+      "7",
+      "9",
+      "11",
+      "13"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 7,
+    "subject": "elementary_mathematics",
+    "category": "STEM",
+    "question": "What is the prime factorization of 360?",
+    "choices": [
+      "2^2 * 3^3 * 5",
+      "2^3 * 3^2 * 5",
+      "2^4 * 3 * 5",
+      "2^3 * 3 * 5^2"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 8,
+    "subject": "elementary_mathematics",
+    "category": "STEM",
+    "question": "A rectangle has a perimeter of 40 cm. If its length is 4 cm longer than its width, what is its area?",
+    "choices": [
+      "84 cm^2",
+      "96 cm^2",
+      "100 cm^2",
+      "104 cm^2"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 9,
+    "subject": "elementary_mathematics",
+    "category": "STEM",
+    "question": "If a fair 6-sided die is rolled twice, what is the probability that the sum of the numbers is 8?",
+    "choices": [
+      "5/36",
+      "1/6",
+      "7/36",
+      "1/4"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 10,
+    "subject": "elementary_mathematics",
+    "category": "STEM",
+    "question": "What is the greatest common divisor (GCD) of 84 and 126?",
+    "choices": [
+      "14",
+      "21",
+      "42",
+      "84"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 11,
+    "subject": "college_mathematics",
+    "category": "STEM",
+    "question": "If a square matrix A has a determinant of 0, which statement is always true?",
+    "choices": [
+      "A is an orthogonal matrix",
+      "The columns of A are linearly dependent",
+      "A is symmetric",
+      "All eigenvalues of A are zero"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 12,
+    "subject": "college_mathematics",
+    "category": "STEM",
+    "question": "What is the derivative of f(x) = x * ln(x) with respect to x for x > 0?",
+    "choices": [
+      "1 / x",
+      "ln(x)",
+      "ln(x) + 1",
+      "x + ln(x)"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 13,
+    "subject": "college_mathematics",
+    "category": "STEM",
+    "question": "What is the rank of a 3x3 matrix whose column space has dimension 2?",
+    "choices": [
+      "1",
+      "2",
+      "3",
+      "0"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 14,
+    "subject": "college_mathematics",
+    "category": "STEM",
+    "question": "Evaluate the definite integral of (2x + 3) from x = 0 to x = 2.",
+    "choices": [
+      "8",
+      "10",
+      "12",
+      "14"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 15,
+    "subject": "college_mathematics",
+    "category": "STEM",
+    "question": "Which of the following conditions guarantees that a real matrix is diagonalizable?",
+    "choices": [
+      "It is symmetric",
+      "It has determinant 1",
+      "It has only real entries",
+      "It is upper triangular"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 16,
+    "subject": "college_physics",
+    "category": "STEM",
+    "question": "An object of mass m moves in a circular path of radius r at constant speed v. What is the net work done on the object during one complete revolution?",
+    "choices": [
+      "2 * pi * m * v^2",
+      "m * v^2 / r",
+      "0",
+      "1/2 * m * v^2"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 17,
+    "subject": "college_physics",
+    "category": "STEM",
+    "question": "According to Gauss's Law for magnetism, the magnetic flux through any closed surface is always:",
+    "choices": [
+      "Proportional to total enclosed charge",
+      "Inversely proportional to permeability",
+      "Zero",
+      "Proportional to current enclosed"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 18,
+    "subject": "college_physics",
+    "category": "STEM",
+    "question": "In quantum mechanics, the Heisenberg Uncertainty Principle establishes a fundamental limit on the precision of simultaneously measuring:",
+    "choices": [
+      "Energy and charge",
+      "Position and linear momentum",
+      "Velocity and acceleration",
+      "Mass and spin"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 19,
+    "subject": "college_physics",
+    "category": "STEM",
+    "question": "What physical phenomenon explains why light bends when passing from air into water?",
+    "choices": [
+      "Diffraction",
+      "Dispersion",
+      "Refraction due to change in wave speed",
+      "Interference"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 20,
+    "subject": "college_physics",
+    "category": "STEM",
+    "question": "In thermodynamics, the Carnot efficiency represents the theoretical maximum efficiency of a heat engine operating between two temperatures T_cold and T_hot. It is given by:",
+    "choices": [
+      "1 - (T_cold / T_hot)",
+      "1 - (T_hot / T_cold)",
+      "T_hot / (T_hot + T_cold)",
+      "(T_hot - T_cold) / T_cold"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 21,
+    "subject": "machine_learning",
+    "category": "STEM",
+    "question": "In training deep neural networks, the vanishing gradient problem primarily occurs in networks utilizing which activation function across many layers?",
+    "choices": [
+      "ReLU",
+      "LeakyReLU",
+      "Sigmoid",
+      "GELU"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 22,
+    "subject": "machine_learning",
+    "category": "STEM",
+    "question": "What is the primary role of the temperature parameter in softmax sampling during text generation?",
+    "choices": [
+      "To normalize hidden vectors to unit length",
+      "To scale the logits, controlling randomness vs peak probability",
+      "To penalize repeated tokens dynamically",
+      "To accelerate matrix multiplication kernels"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 23,
+    "subject": "machine_learning",
+    "category": "STEM",
+    "question": "In a Mixture of Experts (MoE) architecture, what component determines which experts process each token?",
+    "choices": [
+      "Feed-forward projector",
+      "Router (gating network)",
+      "Key-Value cache",
+      "Rotary position embedding"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 24,
+    "subject": "machine_learning",
+    "category": "STEM",
+    "question": "Which loss function is standard for multi-class classification tasks using neural networks with softmax output?",
+    "choices": [
+      "Mean Squared Error (MSE)",
+      "Categorical Cross-Entropy",
+      "Hinge Loss",
+      "Huber Loss"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 25,
+    "subject": "machine_learning",
+    "category": "STEM",
+    "question": "What regularizer adds a penalty proportional to the sum of absolute values of weights (L1 regularization)?",
+    "choices": [
+      "Ridge regression",
+      "Lasso regression",
+      "Dropout",
+      "Batch normalization"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 26,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "In propositional logic, what is the contrapositive of the implication P -> Q?",
+    "choices": [
+      "Q -> P",
+      "not P -> not Q",
+      "not Q -> not P",
+      "P and not Q"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 27,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "According to De Morgan's Laws, the negation of the statement (P or Q) is logically equivalent to:",
+    "choices": [
+      "not P or not Q",
+      "not P and not Q",
+      "P and not Q",
+      "not P -> Q"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 28,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "Consider the premises: 'All mammals are vertebrates' and 'All dogs are mammals'. What valid conclusion follows by Barbara syllogism?",
+    "choices": [
+      "All vertebrates are dogs",
+      "All dogs are vertebrates",
+      "Some vertebrates are not mammals",
+      "No valid conclusion exists"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 29,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "What informal fallacy is committed when an arguer attacks their opponent's personal character rather than addressing the substance of the argument?",
+    "choices": [
+      "Straw man",
+      "Ad hominem",
+      "Post hoc ergo propter hoc",
+      "Begging the question"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 30,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "Which statement about a deductively valid argument is correct?",
+    "choices": [
+      "If all premises are true, the conclusion must be true",
+      "The conclusion is true regardless of premises",
+      "At least one premise must be false",
+      "The conclusion is probable given true premises"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 31,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "What logical fallacy occurs when one assumes as a premise the very conclusion one is trying to prove?",
+    "choices": [
+      "Affirming the consequent",
+      "Denying the antecedent",
+      "Petitio principii (begging the question)",
+      "False dilemma"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 32,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "If 'If it rains, the grass is wet' is true, and 'The grass is wet' is observed, inferring 'Therefore it rained' commits which deductive fallacy?",
+    "choices": [
+      "Modus tollens",
+      "Affirming the consequent",
+      "Denying the antecedent",
+      "Disjunctive syllogism"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 33,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "In epistemology, the classical definition of knowledge formulated in Plato's Theaetetus is:",
+    "choices": [
+      "Empirical perception",
+      "Justified true belief",
+      "Coherent worldview",
+      "Intuitive certainty"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 34,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "Which ethical framework, famously associated with Immanuel Kant, evaluates actions by adherence to universal moral duties rather than consequences?",
+    "choices": [
+      "Utilitarianism",
+      "Virtue ethics",
+      "Deontology",
+      "Ethical egoism"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 35,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "The 'Trolley Problem' is a famous thought experiment primarily used to explore conflicts between which two ethical philosophies?",
+    "choices": [
+      "Nihilism and Hedonism",
+      "Consequentialism (Utilitarianism) and Deontological ethics",
+      "Stoicism and Epicureanism",
+      "Existentialism and Essentialism"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 36,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "In the philosophy of mind, what position asserts that mental states are strictly identical to physical brain states?",
+    "choices": [
+      "Dualism",
+      "Idealism",
+      "Type physicalism (Identity theory)",
+      "Epiphenomenalism"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 37,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "Which philosopher proposed the 'Veil of Ignorance' as a method for establishing the principles of justice?",
+    "choices": [
+      "Thomas Hobbes",
+      "John Locke",
+      "John Rawls",
+      "Jean-Jacques Rousseau"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 38,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "Ren\u00e9 Descartes' famous proposition 'Cogito, ergo sum' was conceived as the foundational truth against what philosophical challenge?",
+    "choices": [
+      "Radical skepticism",
+      "Materialism",
+      "Moral relativism",
+      "Determinism"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 39,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "The Peace of Westphalia (1648) is widely recognized by historians as establishing the foundation for:",
+    "choices": [
+      "The European Union",
+      "The modern system of sovereign nation-states",
+      "The Holy Roman Empire's expansion",
+      "The League of Nations"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 40,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "Which ancient Mesopotamian ruler is best known for compiling one of the earliest surviving written legal codes?",
+    "choices": [
+      "Sargon of Akkad",
+      "Nebuchadnezzar II",
+      "Hammurabi",
+      "Ashurbanipal"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 41,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "What invention in the mid-15th century by Johannes Gutenberg revolutionized the dissemination of knowledge across Europe?",
+    "choices": [
+      "Steam engine",
+      "Movable type printing press",
+      "Mechanical clock",
+      "Compass"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 42,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "The Industrial Revolution began primarily in which country during the late 18th century?",
+    "choices": [
+      "France",
+      "Germany",
+      "Great Britain",
+      "United States"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 43,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "The fall of Constantinople in 1453 to the Ottoman Empire marked the definitive end of which long-standing state?",
+    "choices": [
+      "The Western Roman Empire",
+      "The Byzantine Empire",
+      "The Abbasid Caliphate",
+      "The Mongol Empire"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 44,
+    "subject": "high_school_world_history",
+    "category": "Humanities",
+    "question": "Which treaty concluded World War I and imposed heavy reparations and territorial losses on Germany?",
+    "choices": [
+      "Treaty of Paris (1783)",
+      "Treaty of Versailles (1919)",
+      "Treaty of Utrecht (1713)",
+      "Congress of Vienna (1815)"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 45,
+    "subject": "jurisprudence",
+    "category": "Humanities",
+    "question": "In common law legal systems, what principle dictates that courts must adhere to precedents set by prior judicial rulings?",
+    "choices": [
+      "Habeas corpus",
+      "Stare decisis",
+      "Mens rea",
+      "Res judicata"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 46,
+    "subject": "jurisprudence",
+    "category": "Humanities",
+    "question": "Which legal doctrine prevents an individual from being tried twice for the same offense following a legitimate acquittal or conviction?",
+    "choices": [
+      "Double jeopardy",
+      "Ex post facto",
+      "Subpoena ad testificandum",
+      "Eminent domain"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 47,
+    "subject": "international_law",
+    "category": "Humanities",
+    "question": "Under the United Nations Charter, what body has the primary responsibility for the maintenance of international peace and security?",
+    "choices": [
+      "General Assembly",
+      "International Court of Justice",
+      "Security Council",
+      "Economic and Social Council"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 48,
+    "subject": "jurisprudence",
+    "category": "Humanities",
+    "question": "In criminal jurisprudence, what two fundamental elements must generally be proven to establish criminal liability?",
+    "choices": [
+      "Actus reus and Mens rea",
+      "Tort and Breach of Contract",
+      "Probable cause and Reasonable doubt",
+      "Preponderance of evidence and Motive"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 49,
+    "subject": "international_law",
+    "category": "Humanities",
+    "question": "What legal term describes peremptory norms of general international law from which no derogation is permitted?",
+    "choices": [
+      "Opinio juris",
+      "Lex specialis",
+      "Jus cogens",
+      "Ultra vires"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 50,
+    "subject": "jurisprudence",
+    "category": "Humanities",
+    "question": "The standard of proof required in criminal trials in the United States and most common law jurisdictions is:",
+    "choices": [
+      "Preponderance of the evidence",
+      "Clear and convincing evidence",
+      "Beyond a reasonable doubt",
+      "Substantial evidence"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 51,
+    "subject": "high_school_microeconomics",
+    "category": "Social Sciences",
+    "question": "What happens to the equilibrium price and quantity of a normal good if consumer income increases, assuming supply remains constant?",
+    "choices": [
+      "Price rises, quantity decreases",
+      "Price falls, quantity increases",
+      "Both price and quantity increase",
+      "Both price and quantity decrease"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 52,
+    "subject": "high_school_microeconomics",
+    "category": "Social Sciences",
+    "question": "If a good has a price elasticity of demand greater than 1 in absolute value, demand for that good is characterized as:",
+    "choices": [
+      "Inelastic",
+      "Unit elastic",
+      "Elastic",
+      "Perfect inelastic"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 53,
+    "subject": "high_school_macroeconomics",
+    "category": "Social Sciences",
+    "question": "What policy action is typically undertaken by a central bank pursuing expansionary monetary policy?",
+    "choices": [
+      "Selling government bonds in open market",
+      "Raising the reserve requirement ratio",
+      "Lowering the benchmark interest rate",
+      "Increasing corporate income taxes"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 54,
+    "subject": "high_school_macroeconomics",
+    "category": "Social Sciences",
+    "question": "What term describes an economic condition characterized by stagnant economic growth, high unemployment, and rising inflation simultaneously?",
+    "choices": [
+      "Deflation",
+      "Stagflation",
+      "Hyperinflation",
+      "Recessionary gap"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 55,
+    "subject": "high_school_microeconomics",
+    "category": "Social Sciences",
+    "question": "In microeconomic theory, what condition defines the profit-maximizing level of output for a firm in any market structure?",
+    "choices": [
+      "Price = Average Cost",
+      "Marginal Revenue = Marginal Cost",
+      "Total Revenue is minimized",
+      "Marginal Cost = 0"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 56,
+    "subject": "high_school_microeconomics",
+    "category": "Social Sciences",
+    "question": "A negative externality in production (such as environmental pollution) leads competitive markets to produce:",
+    "choices": [
+      "Less than the socially optimal output",
+      "More than the socially optimal output",
+      "The exact socially optimal output",
+      "Zero output"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 57,
+    "subject": "high_school_macroeconomics",
+    "category": "Social Sciences",
+    "question": "According to the classical Phillips Curve model in the short run, what relationship exists between inflation and unemployment?",
+    "choices": [
+      "Direct positive relationship",
+      "Inverse relationship",
+      "No correlation",
+      "Exponential relationship"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 58,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "In Ordinary Least Squares (OLS) regression, what Gauss-Markov assumption is violated when the variance of the error terms is not constant across observations?",
+    "choices": [
+      "Multicollinearity",
+      "Heteroskedasticity",
+      "Endogeneity",
+      "Autocorrelation"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 59,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "What statistical problem occurs in multiple regression when two or more explanatory variables are highly linearly correlated?",
+    "choices": [
+      "Heteroskedasticity",
+      "Multicollinearity",
+      "Serial correlation",
+      "Omitted variable bias"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 60,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "What does a p-value less than the chosen significance level (e.g., alpha = 0.05) indicate in hypothesis testing?",
+    "choices": [
+      "Accept the null hypothesis as proven",
+      "Reject the null hypothesis in favor of the alternative",
+      "The test has zero power",
+      "The sample size is inadequate"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 61,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "In instrumental variables (IV) estimation, a valid instrument Z must satisfy which two conditions with respect to endogenous variable X and error term u?",
+    "choices": [
+      "Correlated with u, uncorrelated with X",
+      "Relevant (correlated with X) and exogenous (uncorrelated with u)",
+      "Normally distributed and positive",
+      "Collinear with all control variables"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 62,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "What does the R-squared (coefficient of determination) in a regression model quantify?",
+    "choices": [
+      "The proportion of total variance in the dependent variable explained by the model",
+      "The probability that all coefficients are strictly positive",
+      "The mean squared error of prediction",
+      "The correlation between error terms and predictors"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 63,
+    "subject": "econometrics",
+    "category": "Social Sciences",
+    "question": "What type of error is committed when a statistical test incorrectly rejects a true null hypothesis?",
+    "choices": [
+      "Type I error (false positive)",
+      "Type II error (false negative)",
+      "Standard error",
+      "Residual error"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 64,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "In Ivan Pavlov's classical conditioning experiments, what role did the sound of the metronome/bell serve after conditioning was established?",
+    "choices": [
+      "Unconditioned stimulus",
+      "Conditioned stimulus",
+      "Unconditioned response",
+      "Extinction stimulus"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 65,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "According to Jean Piaget's stages of cognitive development, in which stage does an infant develop an understanding of object permanence?",
+    "choices": [
+      "Sensorimotor stage",
+      "Preoperational stage",
+      "Concrete operational stage",
+      "Formal operational stage"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 66,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "Which brain structure, located in the temporal lobe, plays a critical role in the consolidation of short-term memory into long-term declarative memory?",
+    "choices": [
+      "Cerebellum",
+      "Hippocampus",
+      "Medulla oblongata",
+      "Pons"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 67,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "What psychological phenomenon occurs when individuals perform better on simple or well-learned tasks in the presence of an audience?",
+    "choices": [
+      "Social loafing",
+      "Social facilitation",
+      "Groupthink",
+      "Cognitive dissonance"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 68,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "Cognitive dissonance theory, formulated by Leon Festinger, posits that psychological discomfort arises when a person holds:",
+    "choices": [
+      "Repressed childhood memories",
+      "Two contradictory beliefs or actions",
+      "Unconscious biological drives",
+      "Excessive emotional empathy"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 69,
+    "subject": "high_school_psychology",
+    "category": "Social Sciences",
+    "question": "In Abraham Maslow's hierarchy of needs, what need occupies the apex of the pyramid?",
+    "choices": [
+      "Physiological needs",
+      "Safety needs",
+      "Self-actualization",
+      "Esteem needs"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 70,
+    "subject": "high_school_government_and_politics",
+    "category": "Social Sciences",
+    "question": "In the United States Constitution, the separation of powers between legislative, executive, and judicial branches was heavily influenced by the political philosophy of:",
+    "choices": [
+      "Thomas Hobbes",
+      "Baron de Montesquieu",
+      "Karl Marx",
+      "Niccol\u00f2 Machiavelli"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 71,
+    "subject": "high_school_government_and_politics",
+    "category": "Social Sciences",
+    "question": "Which electoral system allocates legislative seats in direct proportion to the percentage of popular votes won by each political party?",
+    "choices": [
+      "First-past-the-post (Single-member plurality)",
+      "Proportional representation",
+      "Ranked-choice runoff",
+      "Gerrymandered districting"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 72,
+    "subject": "sociology",
+    "category": "Social Sciences",
+    "question": "Max Weber's concept of 'rational-legal authority' characterizes which dominant modern organizational structure?",
+    "choices": [
+      "Traditional feudalism",
+      "Charismatic cult",
+      "Bureaucracy",
+      "Anarchy"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 73,
+    "subject": "sociology",
+    "category": "Social Sciences",
+    "question": "What sociological term, coined by \u00c9mile Durkheim, describes a breakdown of social norms and guidance leading to feelings of alienation and disconnection?",
+    "choices": [
+      "Anomie",
+      "Alienation",
+      "Dramaturgy",
+      "Ethnomethodology"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 74,
+    "subject": "us_foreign_policy",
+    "category": "Social Sciences",
+    "question": "The policy of 'Containment', formulated by George F. Kennan during the early Cold War, sought to:",
+    "choices": [
+      "Prevent the territorial and ideological expansion of Soviet communism",
+      "Dismantle European colonial empires immediately",
+      "Enforce international nuclear disarmament",
+      "Isolate the United States from global trade treaties"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 75,
+    "subject": "high_school_government_and_politics",
+    "category": "Social Sciences",
+    "question": "What landmark 1803 U.S. Supreme Court case established the power of judicial review?",
+    "choices": [
+      "McCulloch v. Maryland",
+      "Marbury v. Madison",
+      "Gibbons v. Ogden",
+      "Brown v. Board of Education"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 76,
+    "subject": "business_ethics",
+    "category": "Other",
+    "question": "Which corporate governance theory argues that a corporation's primary duty is to balance the interests of all parties affected by its decisions, including employees, customers, suppliers, and the community?",
+    "choices": [
+      "Shareholder primacy theory",
+      "Stakeholder theory",
+      "Agency theory",
+      "Transaction cost theory"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 77,
+    "subject": "management",
+    "category": "Other",
+    "question": "In strategic management, Michael Porter's 'Five Forces' framework is designed to assess:",
+    "choices": [
+      "Internal employee productivity",
+      "The competitive attractiveness and profitability of an industry",
+      "Compliance with accounting standards",
+      "Macroeconomic exchange rate risks"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 78,
+    "subject": "professional_accounting",
+    "category": "Other",
+    "question": "What is the fundamental accounting equation upon which the double-entry bookkeeping system is built?",
+    "choices": [
+      "Assets = Liabilities + Equity",
+      "Revenue = Expenses + Profit",
+      "Assets + Liabilities = Equity",
+      "Cash Flow = Net Income - Taxes"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 79,
+    "subject": "business_ethics",
+    "category": "Other",
+    "question": "What illegal practice occurs when a corporate insider trades securities based on confidential, non-public material information?",
+    "choices": [
+      "Front-running",
+      "Insider trading",
+      "Market cornering",
+      "Greenwashing"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 80,
+    "subject": "management",
+    "category": "Other",
+    "question": "In operations management, the 'Critical Path' in a project network diagram represents:",
+    "choices": [
+      "The path with the highest cost",
+      "The longest sequence of dependent activities determining minimal project duration",
+      "The path with maximum slack time",
+      "The sequence reserved for emergency tasks"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 81,
+    "subject": "professional_accounting",
+    "category": "Other",
+    "question": "Under accrual accounting, when is revenue officially recognized on financial statements?",
+    "choices": [
+      "When cash payment is deposited into the bank account",
+      "When the performance obligation is satisfied and goods/services are delivered",
+      "At the end of the fiscal calendar year",
+      "When the contract is initially signed"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 82,
+    "subject": "management",
+    "category": "Other",
+    "question": "In the BCG Growth-Share Matrix, a business unit operating in a high-growth market with a low relative market share is designated as a:",
+    "choices": [
+      "Cash Cow",
+      "Star",
+      "Question Mark (Problem Child)",
+      "Dog"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 83,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "In emergency clinical medicine, what is the initial drug of choice for the immediate management of severe systemic anaphylaxis?",
+    "choices": [
+      "Oral diphenhydramine",
+      "Intravenous hydrocortisone",
+      "Intramuscular epinephrine",
+      "Inhaled albuterol"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 84,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "Which endocrine hormone, produced by beta cells in the islets of Langerhans, lowers blood glucose levels by facilitating cellular glucose uptake?",
+    "choices": [
+      "Glucagon",
+      "Cortisol",
+      "Insulin",
+      "Somatostatin"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 85,
+    "subject": "medical_genetics",
+    "category": "Other",
+    "question": "Huntington's disease is an inherited neurodegenerative disorder characterized by which genetic inheritance pattern?",
+    "choices": [
+      "Autosomal recessive",
+      "Autosomal dominant",
+      "X-linked recessive",
+      "Mitochondrial maternal"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 86,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "Which class of antibiotics acts by inhibiting bacterial cell wall synthesis via transpeptidase binding?",
+    "choices": [
+      "Fluoroquinolones",
+      "Beta-lactams (e.g., penicillins)",
+      "Macrolides",
+      "Tetracyclines"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 87,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "A patient presenting with acute chest pain, elevated cardiac troponin I levels, and ST-segment elevation on ECG is experiencing:",
+    "choices": [
+      "Pulmonary embolism",
+      "ST-Elevation Myocardial Infarction (STEMI)",
+      "Gastroesophageal reflux",
+      "Tension pneumothorax"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 88,
+    "subject": "nutrition",
+    "category": "Other",
+    "question": "A deficiency in vitamin C (ascorbic acid) impairs collagen synthesis, leading to which clinical condition?",
+    "choices": [
+      "Rickets",
+      "Pellagra",
+      "Scurvy",
+      "Beriberi"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 89,
+    "subject": "medical_genetics",
+    "category": "Other",
+    "question": "Down syndrome is most commonly caused by what chromosomal abnormality?",
+    "choices": [
+      "Monosomy X",
+      "Trisomy 21",
+      "Trisomy 18",
+      "Klinefelter syndrome (XXY)"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 90,
+    "subject": "nutrition",
+    "category": "Other",
+    "question": "Which of the following vitamins is fat-soluble and synthesized endogenously in human skin upon exposure to ultraviolet B (UVB) radiation?",
+    "choices": [
+      "Vitamin B12",
+      "Vitamin C",
+      "Vitamin D",
+      "Folate (B9)"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 91,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "What is the longest river in the world by general scientific consensus?",
+    "choices": [
+      "Amazon River",
+      "Nile River",
+      "Yangtze River",
+      "Mississippi-Missouri"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 92,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "Which international treaty, adopted in 1987, successfully phased out the production of chlorofluorocarbons (CFCs) to protect the ozone layer?",
+    "choices": [
+      "Kyoto Protocol",
+      "Montreal Protocol",
+      "Paris Agreement",
+      "Basel Convention"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 93,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "What vector transmits the protozoan parasite Plasmodium falciparum, the causative agent of malaria?",
+    "choices": [
+      "Tsetse fly",
+      "Female Anopheles mosquito",
+      "Aedes aegypti mosquito",
+      "Ixodes scapularis tick"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 94,
+    "subject": "medical_genetics",
+    "category": "Other",
+    "question": "What cellular organelle contains its own circular DNA genome separate from nuclear chromosomes?",
+    "choices": [
+      "Endoplasmic reticulum",
+      "Golgi apparatus",
+      "Mitochondrion",
+      "Lysosome"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 95,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "The headquarters of the International Court of Justice (ICJ) is located in which city?",
+    "choices": [
+      "Geneva, Switzerland",
+      "New York, United States",
+      "The Hague, Netherlands",
+      "Vienna, Austria"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 96,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "What type of immunity is conferred when an infant receives maternal antibodies across the placenta or through colostrum?",
+    "choices": [
+      "Active artificial immunity",
+      "Passive natural immunity",
+      "Active natural immunity",
+      "Passive artificial immunity"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 97,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "What is the chemical symbol for the metallic element tungsten?",
+    "choices": [
+      "Tg",
+      "Tu",
+      "W",
+      "Tn"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 98,
+    "subject": "clinical_knowledge",
+    "category": "Other",
+    "question": "Normal human blood pH is tightly regulated by physiological buffer systems within what narrow arterial range?",
+    "choices": [
+      "7.15 - 7.25",
+      "7.35 - 7.45",
+      "7.55 - 7.65",
+      "6.80 - 7.00"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 99,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "Which organ in the human body is responsible for producing bile and metabolizing xenobiotics?",
+    "choices": [
+      "Pancreas",
+      "Spleen",
+      "Liver",
+      "Gallbladder"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 100,
+    "subject": "global_facts",
+    "category": "Other",
+    "question": "What international organization, established in 1944 at Bretton Woods, provides financial assistance and loans to developing countries for capital projects?",
+    "choices": [
+      "World Trade Organization",
+      "World Bank",
+      "Bank for International Settlements",
+      "World Economic Forum"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 101,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Two independent threads running on different CPU cores frequently update two distinct integer variables: thread 1 writes to var_a and thread 2 writes to var_b. Even though the variables are distinct and there are no data races or locks, throughput drops by an order of magnitude. What hardware phenomenon causes this performance degradation?",
+    "choices": [
+      "Pipeline stall due to branch misprediction",
+      "False sharing, because both variables reside on the same 64-byte L1 cache line",
+      "Translation Lookaside Buffer (TLB) shootdown",
+      "Memory bus starvation caused by non-speculative execution"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 102,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In systems languages with affine types (such as Rust), why does attempting to destructure or move out of an individual field x.field fail at compile-time if the enclosing struct X implements a custom Drop trait?",
+    "choices": [
+      "The struct memory layout becomes dynamically sized and unaligned",
+      "It would leave the struct in a partially moved state, making it impossible to invoke the destructor Drop on the entire instance safely",
+      "The compiler cannot infer the lifetime of the moved field relative to the stack frame",
+      "Destructuring drops the field prematurely before the function scope terminates"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 103,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "A client opens a persistent TCP connection and sends a small 200-byte HTTP POST header, immediately followed by another small write of 500 bytes for the body. The client notices an unexpected 40ms to 200ms latency spike before the server receives the body. What combination of protocol mechanisms is responsible?",
+    "choices": [
+      "TCP Slow Start restarting after a packet reordering event",
+      "The interaction between Nagle algorithm on the client and Delayed ACK on the server",
+      "TCP SYN flood mitigation dropping small packets under flow control",
+      "MTU path discovery black hole dropping packets without the DF flag"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 104,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Under Snapshot Isolation (SI), two concurrent transactions read the balance of two linked accounts A ($60) and B ($50) to verify the invariant (A + B >= $100). Transaction 1 withdraws $20 from A, and Transaction 2 withdraws $20 from B simultaneously. Both transactions commit successfully, but the final invariant (A + B = $70 >= $100) is violated. What concurrency anomaly occurred?",
+    "choices": [
+      "Dirty Read (G1a)",
+      "Non-repeatable Read (G1b)",
+      "Write Skew (G-skew)",
+      "Lost Update (P4)"
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 105,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In C and C++, why can an optimizing compiler (such as GCC or Clang with -O2) completely optimize away the sanity check if (x + 1000 < x) when x is a signed 32-bit integer?",
+    "choices": [
+      "Signed integer arithmetic wraps around strictly via two complement modulo 2^32",
+      "Signed integer overflow is Undefined Behavior in the language standard, allowing the compiler to assume it never occurs",
+      "Register allocation promotes signed integers to 64-bit hardware registers automatically",
+      "The compiler assumes x is positive whenever an arithmetic addition operator is encountered"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 106,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "A program on a 64-bit Linux server with 16 GB of physical RAM and no swap space executes malloc(100GB). The call succeeds and returns a valid non-null pointer without error. Why does the operating system allow this?",
+    "choices": [
+      "The kernel immediately compresses the virtual address space using zram",
+      "Linux overcommits virtual address space, and physical RAM pages are only allocated on-demand upon first write via page faults",
+      "The allocation is automatically backed by anonymous temporary files in /dev/shm",
+      "64-bit pointers allow direct physical DMA mapping bypassing the Memory Management Unit"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 107,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Why do almost all relational database storage engines (such as InnoDB or PostgreSQL) choose B+ Trees over Hash Indexes as their default general-purpose primary index structure?",
+    "choices": [
+      "Hash indexes require O(log N) average time for point lookups whereas B+ Trees are O(1)",
+      "B+ Trees keep keys in sorted order, efficiently supporting range scans (BETWEEN, >, <) and prefix searches",
+      "Hash indexes cannot handle string-based data types due to cryptographic hash collisions",
+      "B+ Trees consume less RAM because internal nodes store full row payloads"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 108,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Why is comparing an authentication token using standard strcmp(secret, user_input) == 0 or memcmp vulnerable to timing attacks, even if all communication occurs over an encrypted TLS channel?",
+    "choices": [
+      "The compiler exposes the token in plaintext in the debug symbol tables",
+      "Standard string comparisons return early upon finding the first mismatched byte, leaking information about how many leading bytes were correct based on execution time",
+      "TLS session resumption keys are derived from string comparison exit codes",
+      "The memory addresses of the mismatched characters are leaked through TCP window sizing"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 109,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "When using Linux epoll in Edge-Triggered mode (EPOLLET), what critical requirement must an application follow when reading data from a non-blocking socket to prevent connection deadlocks?",
+    "choices": [
+      "The socket must be closed and re-opened after every epoll_wait event",
+      "The application must invoke read() in a loop until it returns EAGAIN or EWOULDBLOCK, otherwise subsequent incoming data may not trigger new events",
+      "The application must only read exactly 1 byte per epoll notification",
+      "Edge-triggered sockets must always be accompanied by a SIGIO signal handler"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 110,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "On modern pipelined x86-64 CPUs, iterating through a large array of random integers between 0 and 255 and summing only elements where x >= 128 runs significantly faster (often 3x to 5x faster) if the array is sorted before the loop runs. What architectural mechanism explains this difference?",
+    "choices": [
+      "Sorted data allows the compiler to convert the loop into SIMD AVX-512 vector instructions automatically",
+      "The CPU branch predictor achieves nearly 100% accuracy on sorted data, avoiding expensive pipeline flushes caused by mispredictions",
+      "The L1 data cache prefetches only sorted memory addresses sequentially",
+      "Unsorted arrays trigger hardware page faults due to unaligned memory access"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 111,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "When a TCP connection is closed, the party that initiates the active close (sends the first FIN packet) must remain in the TIME_WAIT state for a duration of 2 * MSL (Maximum Segment Lifetime). What is the primary purpose of this state?",
+    "choices": [
+      "To allow the operating system kernel to flush dirty socket buffers to disk",
+      "To ensure the final ACK reaches the remote host (or handle a retransmitted FIN) and prevent delayed duplicate packets from confusing a future reincarnated connection",
+      "To prevent the remote endpoint from opening any new TCP sockets on the host",
+      "To renegotiate the TCP window scaling options before freeing the port"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 112,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In languages adhering to IEEE 754 floating-point arithmetic (like JavaScript, Python, C++), which of the following expressions evaluates to false?",
+    "choices": [
+      "(0.1 + 0.2) > 0.3",
+      "NaN == NaN",
+      "0.0 == -0.0",
+      "1.0 / 0.0 == float('inf')"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 113,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "An application creates a new file, writes critical configuration data, and calls fsync(file_fd). Despite this, after a sudden power loss, the file is completely missing from the directory upon reboot. What step did the application fail to perform?",
+    "choices": [
+      "It failed to call fsync() on the parent directory containing the newly created file entry",
+      "It failed to set the immutable chattr +i flag on the inode",
+      "It wrote using a buffer size smaller than the physical 4096-byte disk sector size",
+      "It forgot to close the file descriptor before the system crashed"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 114,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In the modern ECMAScript/Browser event loop, if a microtask (e.g., Promise.resolve().then(...)) continuously schedules another microtask recursively inside itself, what happens to pending macrotasks (such as setTimeout or UI rendering)?",
+    "choices": [
+      "The browser automatically converts microtasks to macrotasks after 50ms",
+      "The microtask queue is completely drained before moving to the next macrotask, completely starving timers and UI rendering indefinitely",
+      "Macrotasks always take strict precedence over microtasks in alternating turns",
+      "The event loop crashes immediately with a CallStackExceededError"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 115,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "When running an application as the root process (PID 1) inside a Linux Docker container, why does sending docker stop (which issues a SIGTERM) often fail to shut down the process gracefully, forcing Docker to kill it with SIGKILL after 10 seconds?",
+    "choices": [
+      "Docker containers block all POSIX signals by default in their seccomp profile",
+      "In Linux, the kernel exempts PID 1 from default signal handlers, so unhandled signals like SIGTERM are ignored unless the process explicitly registers a signal handler",
+      "The cgroups freezer subsystem suspends PID 1 during container teardown",
+      "SIGTERM can only be delivered to child processes, not the root process of a PID namespace"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 116,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "HTTP/2 multiplexes multiple bidirectional streams over a single TCP connection, eliminating application-layer Head-of-Line (HoL) blocking. However, it still suffers from transport-layer HoL blocking under packet loss. How does HTTP/3 (QUIC) resolve this issue?",
+    "choices": [
+      "By switching to raw IP packets without congestion control",
+      "By using UDP with independent packet loss recovery per stream, so a lost packet on stream A never blocks delivery of data on stream B",
+      "By opening a dedicated TCP socket for every individual asset in parallel",
+      "By encrypting headers with TLS 1.3 zero-RTT session tokens"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 117,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In the MESI (Modified, Exclusive, Shared, Invalid) cache coherence protocol, what state transition must occur before a CPU core can write to a cache line that is currently in the 'Shared' (S) state?",
+    "choices": [
+      "It must broadcast an Invalidate message to all other cores and transition to Modified (M)",
+      "It can write immediately without notifying other cores because Shared guarantees coherence",
+      "It must downgrade the cache line to Invalid (I) and reload it from main RAM",
+      "It must request a hardware spinlock from the motherboard chipset"
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 118,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "In SIMT (Single Instruction, Multiple Threads) GPU computing (such as AMD ROCm wavefronts or NVIDIA warps), what happens when threads within the same wavefront/warp take divergent branches of an if-else conditional statement?",
+    "choices": [
+      "Half the threads are immediately migrated to another compute unit (CU) to run in parallel",
+      "The hardware serializes the branches: threads on the else branch are masked off (idled) while the if branch executes, then vice versa, cutting execution efficiency",
+      "The GPU throws an unrecoverable illegal instruction exception",
+      "The compiler replaces the condition with non-divergent asynchronous barrier synchronization"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 119,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "A developer accidentally creates three commits while in 'detached HEAD' state and then runs git checkout main. The commits no longer appear in git log. Why have these commits NOT been deleted immediately, and how can they be recovered?",
+    "choices": [
+      "They were automatically merged into an anonymous orphan branch and can be viewed via git status",
+      "The commit objects remain in the .git/objects database until garbage collected by git prune/gc, and their hashes can be retrieved via git reflog",
+      "They were stored in the temporary OS swap file and can only be recovered by inspecting filesystem unallocated blocks",
+      "Git automatically pushes detached commits to origin as stashes"
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 120,
+    "subject": "it_edge_cases",
+    "category": "IT Edge Cases",
+    "question": "Why does evaluating the regular expression ^(a+)+$ against the string 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaab' take catastrophic exponential time (ReDoS) in standard regex engines like Python re or JavaScript RegExp?",
+    "choices": [
+      "The regex engine re-compiles the pattern on every single character comparison",
+      "Traditional NFA backtracking explores every possible permutation of dividing the sequence of 'a' characters between the inner and outer quantifier before failing on 'b'",
+      "String matching requires converting the string into an abstract syntax tree on the heap",
+      "The regex engine overflows the CPU call stack and falls back to slow interpreted byte code"
+    ],
+    "answer": "B"
+  }
+]

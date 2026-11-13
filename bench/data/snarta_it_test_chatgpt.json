@@ -1,0 +1,1302 @@
+[
+  {
+    "id": 1,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A Rust service stores `Arc<RefCell<State>>` and tries to move a clone into `std::thread::spawn`. `State` itself contains only `u64` and `String`. Why is the closure rejected by the compiler?",
+    "choices": [
+      "`String` is never `Send`, because its buffer is allocated on the heap.",
+      "The closure must return `()` and `State` has no unit conversion.",
+      "`Arc` is always single-threaded; only `Rc` can cross thread boundaries.",
+      "`Arc<T>` is `Send` only when `T` is both `Send` and `Sync`; `RefCell<State>` is not `Sync`, because its borrow tracking is not thread-safe."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 2,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A type `SelfRef` contains a pointer to one of its own fields and is deliberately `!Unpin`. A value is stored as `Pin<Box<SelfRef>>`. Which statement correctly describes what `Pin` guarantees?",
+    "choices": [
+      "All fields become immutable, and even interior mutability is forbidden.",
+      "The pointee is guaranteed to live forever and can never be dropped.",
+      "Safe code cannot move the pinned pointee out of its stable location while it remains pinned; moving the `Box` handle itself is still allowed.",
+      "The entire `Box` handle becomes immovable, including the stack variable holding it."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 3,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "An airlock controller logs: \"What the hell, the reader skipped bytes again.\" A Tokio task uses `select!` between a timeout and `reader.read_exact(&mut buf)`. The timeout wins after `read_exact` has consumed part of the stream. The task is retried with a fresh buffer. What is the central correctness risk?",
+    "choices": [
+      "Tokio automatically rewinds the TCP receive buffer, so the retry always reads the same bytes.",
+      "The canceled `read_exact` future may already have consumed a prefix; dropping the future does not roll back stream state, so the retry can start in the middle of the logical message.",
+      "The partial bytes are written back into the kernel receive queue when the future is dropped.",
+      "The timeout branch permanently closes the socket because `select!` owns the reader."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 4,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "Thread A initializes a payload, then performs `READY.store(true, Ordering::Release)`. Thread B spins until `READY.load(Ordering::Acquire)` returns true and then reads the payload. Assuming no other writes, what does the Release/Acquire pair provide?",
+    "choices": [
+      "It guarantees that the payload is written directly to physical RAM rather than a CPU cache.",
+      "If B observes the Release store, the initialization writes that happened before it are visible to B after the Acquire load.",
+      "It makes every later operation in the entire program sequentially consistent.",
+      "It prevents Thread A from being preempted between initialization and the store."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 5,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A thread panics while holding a `std::sync::Mutex<Ledger>`. A second thread later calls `lock()`. Which behavior should the second thread expect?",
+    "choices": [
+      "The lock silently resets `Ledger` to its default value.",
+      "The second thread blocks forever because Rust never releases a mutex after panic.",
+      "The call returns a `PoisonError` containing access to the guard; the program may inspect or recover the data, but poisoning is a warning rather than automatic rollback.",
+      "The mutex is permanently destroyed and the process must abort."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 6,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A developer writes `tokio::spawn(async { use_local(&local_value).await; })`, where `local_value` is a stack variable in the calling function. The future is rejected even though the task is awaited before the function returns. What requirement is being violated?",
+    "choices": [
+      "The future must implement `Copy` so the executor can duplicate it between worker threads.",
+      "Every async block must own all values because Rust has no async borrowing.",
+      "`tokio::spawn` requires the spawned future to be `Send + 'static`; awaiting the JoinHandle later does not prove that the spawned task cannot outlive the borrowed stack value.",
+      "The function must use `Box::leak` because stack variables cannot be borrowed by futures."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 7,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A function accepts `&mut Vec<T>` and temporarily creates `&mut vec[0]`. It then calls `vec.push(value)` while the element reference is still used later. Why is this rejected even if the vector currently has spare capacity?",
+    "choices": [
+      "An element reference is invalid immediately after any method call on the vector, even if that method only reads it.",
+      "The mutable borrow of the element overlaps another mutable borrow of the vector; the API must preserve aliasing rules independently of whether this particular push reallocates.",
+      "Rust forbids reading or writing any vector element after taking its first reference.",
+      "`Vec::push` always reallocates, even when capacity is available."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 8,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A struct contains `field: String` and implements a custom `Drop`. Code wants to extract `field` by value while keeping the rest of the struct alive. Which approach preserves Rust’s destruction rules?",
+    "choices": [
+      "Use pattern matching to partially move the field; custom `Drop` is ignored for moved fields.",
+      "Replace the field with a valid placeholder using `mem::replace` (or `Option::take` for an optional field), leaving the struct fully initialized for its destructor.",
+      "Call `ManuallyDrop::drop` on the whole struct and then continue using the remaining fields.",
+      "Use `ptr::read(&self.field)` and let the normal destructor run unchanged; this is always safe."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 9,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "An operator complains: \"Rust ate my damn file descriptor.\" The program called `mem::forget(file)` on an open file handle. Which statement is accurate?",
+    "choices": [
+      "The call is undefined behavior unless the file was opened in read-only mode.",
+      "Rust guarantees that forgotten values are reclaimed by a background drop queue.",
+      "The operating system closes the descriptor immediately because the Rust value was forgotten.",
+      "The value’s destructor is not run, so the file descriptor may leak; `mem::forget` is safe and does not itself cause undefined behavior."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 10,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A `Drop` implementation logs `\"outer\"`; the struct has fields `first` and `second`, whose destructors log their names. Ignoring panics, what is the destruction order when the struct is dropped?",
+    "choices": [
+      "The struct’s `Drop::drop` runs first, then its fields are dropped in declaration order: `first`, then `second`.",
+      "The compiler may choose any order because field order is not observable.",
+      "The struct’s `Drop::drop` replaces field destruction, so neither field is dropped automatically.",
+      "Fields are dropped in reverse declaration order, then the struct’s `Drop::drop` runs."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 11,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A developer replaces `Rc<T>` with `Arc<T>` to share data across threads. `T` is immutable but contains `Cell<u32>`. Why may `Arc<T>` still fail the thread-safety bounds?",
+    "choices": [
+      "The payload must implement `Unpin` before it can be stored in `Arc`.",
+      "`Cell<u32>` is not `Send` because integers cannot be moved between threads.",
+      "`Arc` makes reference counting atomic, but it does not make the payload thread-safe; `Cell<u32>` is not `Sync`, so shared references to the payload cannot safely cross threads.",
+      "`Arc` supports only primitive payloads and cannot contain user-defined structs."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 12,
+    "subject": "rust_systems",
+    "category": "IT Edge Cases",
+    "question": "A function returns `impl Iterator<Item = u32>`. One branch returns `0..10`, another returns `vec.into_iter()`. Both iterators yield `u32`. Why does the function still fail to type-check?",
+    "choices": [
+      "`impl Iterator` is allowed only in argument position, never as a return type.",
+      "The compiler requires iterators to have identical lengths at compile time.",
+      "Each return path of an `impl Trait` return type must resolve to the same hidden concrete type; matching item types do not make distinct iterator types identical.",
+      "A `Vec` iterator yields references, while a range iterator yields owned integers."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 13,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "Three independent operations are passed to `Promise.all`. The first promise rejects quickly; the other two perform delayed writes to a local cache. The caller catches the rejection and immediately starts a fallback. What is guaranteed?",
+    "choices": [
+      "All remaining promises are canceled before the catch handler runs.",
+      "The catch handler waits until every promise settles, then receives the first error.",
+      "`Promise.all` rejects as soon as a rejection is observed, but it does not cancel the other promises; their writes may still happen after the fallback starts.",
+      "The other promises are detached and their writes are rolled back."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 14,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "Consider this code: `Promise.resolve().then(() => log(\"A\")); queueMicrotask(() => log(\"B\")); Promise.resolve().then(() => { log(\"C\"); queueMicrotask(() => log(\"D\")); });`. What is the log order?",
+    "choices": [
+      "`B`, `A`, `D`, `C`.",
+      "`A`, `B`, `C`, `D`.",
+      "`A`, `B`, `D`, `C`.",
+      "`A`, `C`, `B`, `D`."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 15,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "What does `Object.keys({ b: 1, 10: 2, 2: 3, a: 4 })` return under ECMAScript property-order rules?",
+    "choices": [
+      "`[\"b\", \"10\", \"2\", \"a\"]`: all keys strictly in insertion order.",
+      "`[\"2\", \"10\", \"b\", \"a\"]`: integer-index keys first in ascending numeric order, followed by other string keys in insertion order.",
+      "`[\"10\", \"2\", \"a\", \"b\"]`: all keys sorted lexicographically.",
+      "`[\"2\", \"10\", \"a\", \"b\"]`: integer keys first, then remaining keys alphabetically."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 16,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Node.js program executes `JSON.stringify({ score: NaN, limit: Infinity, missing: undefined, values: [NaN, undefined] })`. Which result is correct?",
+    "choices": [
+      "`{\"score\":null,\"limit\":null,\"values\":[null,null]}`; the `missing` object property is omitted, while non-finite numbers and unsupported array values become `null`.",
+      "`{\"score\":NaN,\"limit\":Infinity,\"missing\":undefined,\"values\":[NaN,undefined]}`.",
+      "`{\"score\":null,\"limit\":null,\"missing\":null,\"values\":[]}`.",
+      "`{\"score\":\"NaN\",\"limit\":\"Infinity\",\"missing\":null,\"values\":[\"NaN\",null]}`."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 17,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A cache uses JavaScript `Map` and performs `map.set(NaN, \"x\")` followed by `map.get(Number(\"oops\"))`. What is returned?",
+    "choices": [
+      "`\"x\"`, because `Map` uses SameValueZero key equality, under which `NaN` equals `NaN`.",
+      "`\"x\"` only in browsers; Node.js uses reference equality for numeric keys.",
+      "`undefined`, because `NaN !== NaN` under strict equality.",
+      "A `TypeError`, because `NaN` is not a valid `Map` key."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 18,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A TypeScript project declares `interface Session { role: string }` and later tries `value instanceof Session` at runtime. Why does this fail?",
+    "choices": [
+      "TypeScript forbids runtime checks on every user-defined type, including classes.",
+      "Interfaces are converted to symbols, and `instanceof` cannot compare symbols.",
+      "The check works only when `strictNullChecks` is disabled.",
+      "An interface is erased during compilation and does not create a runtime constructor; `instanceof` requires a runtime value such as a class or function."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 19,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A `Map` stores `map.set({ id: 7 }, \"found\")`. Later the program calls `map.get({ id: 7 })`. Why is the result `undefined`?",
+    "choices": [
+      "The `id` property must be declared `readonly` for object keys to work.",
+      "The two object literals have different identities; `Map` compares object keys by reference identity, not by structural contents.",
+      "`Map` converts object keys to JSON and rejects duplicate object contents.",
+      "Object keys are compared by their memory address only after garbage collection."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 20,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A developer sorts the numeric array `[3, 20, 100]` using `.sort()` with no comparator. What is the result in JavaScript?",
+    "choices": [
+      "`[3, 20, 100]`, because numeric arrays are sorted numerically by default.",
+      "`[20, 3, 100]`, because the default comparator subtracts adjacent values.",
+      "`[100, 20, 3]`, because the default sort compares string representations lexicographically.",
+      "The call throws because JavaScript requires a comparator for arrays of numbers."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 21,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A client sends a payment request with `fetch`, then aborts its `AbortController` after a timeout. The server may already have committed the payment. Which conclusion is correct?",
+    "choices": [
+      "Aborting stops or interrupts the client-side fetch operation; it does not prove that the server did not receive or commit the payment, so retries need server-side idempotency.",
+      "The payment is committed only if the client receives the response body.",
+      "An aborted fetch guarantees the TCP request was never transmitted.",
+      "The browser sends a compensating transaction that rolls back the payment."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 22,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A developer writes `await Promise.race([slowOperation(), timeout(500)])` and assumes the losing operation is stopped after 500 ms. What is the flaw?",
+    "choices": [
+      "`Promise.race` settles the wrapper promise but does not cancel the losing operation; the operation needs a cooperative cancellation mechanism such as an `AbortSignal` that it actually observes.",
+      "JavaScript automatically cancels every promise that loses a race, but only after the current microtask queue drains.",
+      "`Promise.race` always waits for the slowest promise before resolving.",
+      "The timeout promise is ignored unless it is passed as the first array element."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 23,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "What value does this function return? `function f() { try { return \"first\"; } finally { return \"last\"; } }`",
+    "choices": [
+      "`\"first\"`; the first return always wins.",
+      "It throws a syntax error because `finally` cannot contain `return`.",
+      "`\"last\"`; a `return` from `finally` overrides a pending return from `try`.",
+      "`undefined`; returning from `finally` discards both values."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 24,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A value is typed as `Readonly<{ profile: { name: string } }>` in TypeScript. Another alias still holds the original object. Which operation remains legal at runtime and is permitted by the type?",
+    "choices": [
+      "The object is frozen by the TypeScript compiler when it emits JavaScript.",
+      "Changing `value.profile.name` is forbidden because `Readonly` is automatically deep.",
+      "No property can be changed through any alias once one alias is typed as `Readonly`.",
+      "Changing `value.profile.name` is permitted: `Readonly` is shallow and does not recursively make nested objects readonly."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 25,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Node.js service uses `structuredClone` on an object that contains a circular reference and a `Map`, but no functions. What is the expected behavior?",
+    "choices": [
+      "It succeeds only after converting the `Map` to a plain object.",
+      "It silently drops the circular reference and replaces the `Map` with an empty object.",
+      "The clone succeeds: structured cloning supports cycles and `Map` values, while functions and some other unsupported values would cause a `DataCloneError`.",
+      "It fails immediately because all cyclic object graphs are unsupported."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 26,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A program uses an ordinary object as a dictionary and assigns `dict[1] = \"number\"` then `dict[\"1\"] = \"string\"`. How many distinct own string-keyed properties does the object have?",
+    "choices": [
+      "One: ordinary object property keys are converted to strings (or symbols), so both assignments target the key `\"1\"`.",
+      "Two, because numbers and strings are distinct property-key types.",
+      "Zero, because numeric property names are rejected in ordinary objects.",
+      "Two, but only if the object was created with `Object.create(null)`."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 27,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "An engineer writes `const retries = input || 3` and later discovers that an explicit retry count of `0` is changed to `3`. Which operator expresses the intended fallback only for `null` or `undefined`?",
+    "choices": [
+      "`input === false ? 3 : input`; this is the only way to handle null and undefined.",
+      "`input ?: 3`; the conditional fallback operator is part of standard JavaScript.",
+      "`input ?? 3`; nullish coalescing preserves valid falsy values such as `0`, `false`, and the empty string.",
+      "`input && 3`; logical AND preserves zero while replacing null."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 28,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A furious developer posts: \"What the fuck, `Object.is(-0, 0)` is false but `-0 === 0` is true.\" Is the log describing a bug in the runtime?",
+    "choices": [
+      "No. `Object.is` distinguishes positive and negative zero, while strict equality treats them as equal; the two APIs intentionally use different equality semantics.",
+      "Yes. IEEE-754 requires both comparisons to return true for signed zero.",
+      "Yes. `Object.is` is an alias for `===` in modern JavaScript.",
+      "No, but only because `-0` is converted to a string before `Object.is` runs."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 29,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A backend receives a JSON object with an own `\"__proto__\"` property and merges it into a normal target object with `Object.assign(target, source)`. Why can this be dangerous?",
+    "choices": [
+      "The key causes `Object.assign` to disable garbage collection for the target.",
+      "JSON parsing executes the value of `__proto__` as JavaScript code immediately.",
+      "The key is always discarded by `JSON.parse`, so the merge cannot have any effect.",
+      "Assignment to the target’s `__proto__` property can invoke the inherited setter and alter the target object’s prototype, potentially enabling prototype-pollution effects."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 30,
+    "subject": "typescript_runtime",
+    "category": "IT Edge Cases",
+    "question": "A developer says, \"The request timed out, so the server definitely did nothing.\" The API uses HTTP POST and the server commits before writing its response. What is the strongest conclusion supported by the client timeout?",
+    "choices": [
+      "Only that the client did not receive a successful response before its deadline; the server-side outcome is unknown and may already be committed.",
+      "The client can infer success because the server accepted the TCP connection.",
+      "The TCP connection timeout guarantees the request body was never delivered.",
+      "The server rolled back because a POST cannot commit without an acknowledged response."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 31,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Python 3.12 program awaits `asyncio.to_thread(blocking_write)` inside a task. The task is canceled, but `blocking_write` has already started in the worker thread. What happens?",
+    "choices": [
+      "The worker thread is killed immediately, and any partial file write is rolled back.",
+      "The interpreter asynchronously raises `CancelledError` inside the worker thread at the next bytecode.",
+      "The cancellation is ignored by asyncio until the thread returns, so the task cannot be canceled.",
+      "Cancellation stops the awaiting coroutine, but it does not forcibly terminate the already-running OS thread; the blocking function may continue and complete its write."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 32,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "Consider `def add(x, bucket=[]): bucket.append(x); return bucket`. Two calls `add(1)` and `add(2)` are made without passing `bucket`. What does the second call return?",
+    "choices": [
+      "A `TypeError`, because mutable default arguments are prohibited by Python.",
+      "`[2]`, because Python recreates mutable defaults for every call.",
+      "`[1, 2]`, because the default list is created once when the function is defined and reused across calls.",
+      "`[1]`, because the first call permanently binds the default argument."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 33,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A program executes `a = [[1], [2]]; b = a.copy(); b[0].append(9)`. What is `a` afterward?",
+    "choices": [
+      "`[[1, 9], [2, 9]]`; the nested append is broadcast to all inner lists.",
+      "The operation raises `TypeError` because shallow copies are immutable.",
+      "`[[1, 9], [2]]`; the outer list was copied, but both lists still reference the same nested list objects.",
+      "`[[1], [2]]`; `list.copy()` recursively copies every nested object."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 34,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A loop appends `lambda: i` to a list for `i` in `range(4)`, then invokes the lambdas after the loop. What values are produced?",
+    "choices": [
+      "The lambdas cannot be called because `i` is deleted at the end of a `for` loop.",
+      "`[3, 3, 3, 3]`; each lambda looks up the same `i` variable when called, after the loop has finished.",
+      "`[4, 4, 4, 4]`; the loop variable is incremented once more before leaving the loop.",
+      "`[0, 1, 2, 3]`; each lambda captures the current integer value automatically."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 35,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Python context manager’s `__exit__(self, exc_type, exc, tb)` returns `True` when an exception occurred inside the `with` block. What happens?",
+    "choices": [
+      "The exception is re-raised after `__exit__` returns.",
+      "The entire interpreter exits because `__exit__` may not return a truthy value.",
+      "The exception is suppressed and execution continues after the `with` statement.",
+      "The exception is converted to a warning and execution skips the next statement."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 36,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Python billing calculation evaluates `Decimal(\"0.1\") + 0.1`. Why does this raise `TypeError` rather than producing an approximate decimal?",
+    "choices": [
+      "The result would overflow the decimal context, so Python converts it to `NaN` and raises.",
+      "A `float` can be added to `Decimal` only when its binary representation is exact.",
+      "Python deliberately disallows arithmetic between `Decimal` and `float`; the caller must convert explicitly to avoid silently mixing decimal and binary floating-point semantics.",
+      "`Decimal` stores values as strings and therefore cannot perform addition."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 37,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "On a conventional GIL-enabled CPython build, two threads execute `counter += 1` millions of times. Why is it unsafe to assume the final value must equal the number of increments?",
+    "choices": [
+      "The GIL is released whenever Python evaluates an integer addition, so every increment is lost.",
+      "The GIL protects only list operations, not access to global variables.",
+      "Python integers are stored in shared mutable memory and overflow at 2^31.",
+      "The operation is a read-modify-write sequence, not a language-level atomic increment; thread switches can interleave the steps, so explicit synchronization is required."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 38,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "In a Python 3.11+ service, a child task named `gremlin` raises a non-cancellation exception and the developer yells, \"This fucking task broke the whole group.\" What is the TaskGroup’s default failure behavior?",
+    "choices": [
+      "It converts the failure to a result value and returns normally from the context manager.",
+      "The TaskGroup cancels its remaining child tasks, waits for them to finish cancellation, and then raises an exception group containing the failure(s).",
+      "It logs the exception and lets every sibling continue without interruption.",
+      "It terminates the entire Python process immediately with `os._exit`."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 39,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A coroutine awaits `asyncio.shield(inner_task)`. The outer coroutine is canceled while `inner_task` is still running. What does `shield` guarantee?",
+    "choices": [
+      "The outer await receives cancellation, but that cancellation is not propagated to `inner_task`; the inner task may continue unless canceled separately.",
+      "The outer task cannot be canceled while shield is active.",
+      "The inner task is automatically awaited to completion before the outer cancellation is delivered.",
+      "Both tasks become immune to cancellation until the event loop shuts down."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 40,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A generator function contains `raise StopIteration(\"done\")` directly in its body, and that exception escapes the generator. Under modern Python (PEP 479), what does the caller observe?",
+    "choices": [
+      "A `SyntaxError` at function definition time.",
+      "Normal generator exhaustion with no exception, regardless of the explicit raise.",
+      "A `RuntimeError` whose cause is the escaping `StopIteration`; this prevents accidental termination of iteration from being confused with an explicit generator error.",
+      "The original `StopIteration` exactly as written."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 41,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A Python loop iterates over a dictionary and changes the value of an existing key without adding or deleting keys. What is the usual behavior?",
+    "choices": [
+      "Every mutation during dictionary iteration raises `RuntimeError`, including value replacement.",
+      "Iteration may continue normally: replacing an existing value does not change dictionary size; adding or removing keys during iteration is the operation that raises `RuntimeError`.",
+      "The dictionary silently copies itself before iteration, so changes are invisible.",
+      "The iterator restarts from the first key after every value replacement."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 42,
+    "subject": "python_runtime",
+    "category": "IT Edge Cases",
+    "question": "A developer says, \"I used `@dataclass(frozen=True)`, so this damn object is deeply immutable.\" The class has a field `items: list[int]`. Which statement is correct?",
+    "choices": [
+      "All nested objects are recursively frozen, so the append raises `FrozenInstanceError`.",
+      "The list is automatically converted to a tuple during initialization.",
+      "Rebinding `instance.items` is blocked, but mutating the referenced list (for example, `instance.items.append(1)`) is still possible; frozen dataclasses are shallowly frozen.",
+      "The class cannot be instantiated because frozen dataclasses cannot contain mutable field types."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 43,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A PostgreSQL table has `UNIQUE(email)` and `email` is nullable. Two separate rows are inserted with `email = NULL`. Under the default unique-constraint semantics, what happens?",
+    "choices": [
+      "Both rows are accepted, because PostgreSQL normally treats NULL values as distinct for uniqueness; `NULLS NOT DISTINCT` changes that behavior.",
+      "The first insert succeeds, but the second blocks until the first row is deleted.",
+      "Both rows are rejected because a unique column must also be NOT NULL.",
+      "The second insert fails because every NULL is considered equal to every other NULL."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 44,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "Under PostgreSQL `READ COMMITTED`, a transaction runs `SELECT count(*) FROM jobs`, waits, then runs the same query again. Another transaction commits an insert between the two statements. Can the counts differ?",
+    "choices": [
+      "No. READ COMMITTED takes one snapshot at transaction start, just like REPEATABLE READ.",
+      "No. PostgreSQL never allows a transaction to observe rows committed after it began.",
+      "Yes, but only if the first transaction explicitly calls `COMMIT` between the SELECT statements.",
+      "Yes. Each statement gets a new snapshot under READ COMMITTED, so the second statement can see the newly committed row."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 45,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A PostgreSQL transaction runs at `SERIALIZABLE` isolation and receives SQLSTATE `40001` at commit. Which application response is appropriate?",
+    "choices": [
+      "Retry the entire transaction from the beginning, with bounded retry/backoff; the database aborted it because the observed concurrent execution could not be serialized.",
+      "Disable all indexes and rerun the same transaction once; serialization errors are caused by index corruption.",
+      "Ignore the error because SQLSTATE `40001` means the query returned no rows.",
+      "Retry only the final COMMIT statement, because all earlier statements are already durable."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 46,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "Two on-call engineers must remain available at all times. A transaction reads that at least one engineer is on call, then each engineer independently sets their own row to off-call. Both transactions commit under snapshot isolation, leaving nobody on call. What is the anomaly?",
+    "choices": [
+      "Write skew: each transaction updates a different row based on a shared predicate, so there is no direct write-write conflict even though the cross-row invariant is violated.",
+      "Read uncommitted: each transaction sees the other transaction’s uncommitted update.",
+      "Lost update: both transactions overwrite the same physical row with the same value.",
+      "Dirty write: one transaction overwrites another transaction’s uncommitted value."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 47,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A service writes an order to PostgreSQL and then publishes `OrderCreated` to a message broker. The process can crash between the two operations. Which pattern most directly closes this dual-write gap?",
+    "choices": [
+      "Write the order and an outbox event in the same database transaction, then publish outbox rows asynchronously with idempotent handling of possible duplicate delivery.",
+      "Wrap the database transaction and broker publish in a local mutex; a process crash cannot release the mutex until restart.",
+      "Use a longer HTTP timeout for the broker so the database commit and publish finish together.",
+      "Publish the event first and then insert the order; a broker acknowledgment makes both operations atomic."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 48,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A transaction executes `SELECT ... FOR UPDATE`, updates the row, and then performs several more statements. At what point is the row lock normally released?",
+    "choices": [
+      "At transaction end (COMMIT or ROLLBACK), not immediately after the UPDATE statement.",
+      "Immediately after the SELECT returns the row.",
+      "When the client receives the UPDATE row count, even if the transaction remains open.",
+      "After the next SELECT statement, regardless of transaction state."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 49,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A PostgreSQL table is updated continuously, but one reporting transaction remains open for hours while reading an old snapshot. Why can this cause table and index bloat?",
+    "choices": [
+      "The transaction forces every update to be stored as a new table, one file per statement.",
+      "Vacuum must copy every page to the reporting client before it can reclaim space.",
+      "PostgreSQL disables all writes while any transaction holds a snapshot.",
+      "The old transaction can prevent vacuum from removing row versions that might still be visible to its snapshot, allowing dead tuples and related index entries to accumulate."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 50,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A scheduler dashboard says, \"This queue is bullshit; the oldest job is still waiting.\" The workers claim rows using `FOR UPDATE SKIP LOCKED`, and one job is repeatedly skipped while newer jobs finish. What property should the queue designer not assume?",
+    "choices": [
+      "A skipped row is automatically marked completed by PostgreSQL.",
+      "Concurrent workers can never claim different rows at the same time.",
+      "The query guarantees that every row is returned exactly once across all workers.",
+      "Strict FIFO fairness: SKIP LOCKED improves concurrent claiming but can allow older locked jobs to be bypassed repeatedly and starve."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 51,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "Two requests may withdraw a positive amount from one account. Which SQL statement avoids the classic application-level read-modify-write race for a minimum-balance rule?",
+    "choices": [
+      "Run `SELECT balance` twice and use the larger value to decide whether to update.",
+      "Use `UPDATE account SET balance = :amount WHERE id = :id` and rely on the database to infer the subtraction.",
+      "Read `balance` into the application, subtract in memory, then issue an unconditional `UPDATE balance = :new_balance`.",
+      "`UPDATE account SET balance = balance - :amount WHERE id = :id AND balance >= :amount`, followed by checking the affected-row count."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 52,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A PostgreSQL query filters users with `WHERE lower(email) = lower($1)`. A plain B-tree index on `email` is not being used. Which index most directly matches the predicate?",
+    "choices": [
+      "A partial index on `email IS NOT NULL`, regardless of the query expression.",
+      "An expression index on `lower(email)`, such as `CREATE INDEX ... ON users (lower(email))`.",
+      "A GIN index on the table’s entire row, because `lower()` is a text transformation.",
+      "A hash index on the original `email` column, because all equality predicates require hash indexes."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 53,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "An API receives an idempotency key that already exists, but the new request body differs from the body originally associated with that key. What is the safest API behavior?",
+    "choices": [
+      "Treat the key as unused because idempotency keys are valid only for identical HTTP headers.",
+      "Return the old result and also execute the new operation in the background.",
+      "Silently execute the new operation and overwrite the idempotency record.",
+      "Reject the key reuse as a conflict (or equivalent client error) rather than returning the previous result as though the different operation had been performed."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 54,
+    "subject": "database_internals",
+    "category": "IT Edge Cases",
+    "question": "A developer claims that `COUNT(*)` on a large PostgreSQL table is always O(1) because PostgreSQL stores the row count in table metadata. Which correction is accurate?",
+    "choices": [
+      "The count is O(1) after the first query because PostgreSQL permanently caches exact counts.",
+      "An exact MVCC-aware count generally requires scanning visible tuples or a suitable index; catalog statistics are estimates, not an exact transaction-visible row count.",
+      "The count is O(1) only when the table has a primary key.",
+      "The count is O(log N) because PostgreSQL stores every row identifier in a balanced tree."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 55,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A worker obtains a distributed lock with a 10-second lease, pauses for 30 seconds, and resumes after another worker has acquired the same lock. Both workers can now write to storage. What mechanism protects storage from the stale worker?",
+    "choices": [
+      "A monotonically increasing fencing token issued on each lock acquisition; storage rejects writes carrying a token older than the latest accepted token.",
+      "A random UUID stored only in the old worker’s memory; storage does not need to validate it.",
+      "A TCP keepalive between the worker and lock server; keepalive guarantees the process is executing.",
+      "A longer lease combined with client-side wall-clock checks; a paused process can never exceed the lease after resuming."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 56,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A client sends `CreateInvoice`, waits for a response, then times out. The service may have committed the invoice but lost the response. Why is blindly retrying unsafe?",
+    "choices": [
+      "A timeout means the server rejected the request before entering its transaction.",
+      "The timeout leaves the operation outcome ambiguous; without a stable idempotency key or deduplication record, the retry can create a second invoice.",
+      "The retry is unsafe because HTTP clients are forbidden from retrying POST requests under all conditions.",
+      "A timed-out request is guaranteed to be replayed automatically by TCP, so application retries always duplicate it."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 57,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "Two events have Lamport timestamps L(a) = 12 and L(b) = 19. What can be concluded from these values alone?",
+    "choices": [
+      "The events may be causally ordered a-before-b, but the timestamps alone do not prove that relation; Lamport clocks guarantee that causality implies increasing timestamps, not the converse.",
+      "Event b must have been generated on a machine with a clock exactly seven seconds ahead.",
+      "Event a definitely happened before event b in real time.",
+      "The events are concurrent because their timestamps are different."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 58,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A service measures a 2-second request deadline using the system wall clock. NTP steps the clock backward by 5 seconds during the request. Which clock should be used for elapsed-time deadlines?",
+    "choices": [
+      "A Lamport clock, because it is guaranteed to advance at a constant physical rate.",
+      "UTC wall time, because distributed systems require every timeout to be globally synchronized.",
+      "The process CPU-time clock, because time spent waiting for network I/O must not count.",
+      "A monotonic clock, because it is designed not to move backward or jump with wall-clock corrections during normal operation."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 59,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A Kafka topic has 12 partitions, and its partition count and key-partitioning rule remain unchanged. All records for customer `C17` use the same key, while records for different customers may map to different partitions. What ordering guarantee is available?",
+    "choices": [
+      "Kafka guarantees a total order across the entire topic because producers send records sequentially.",
+      "Records for the same customer are ordered only if the topic has exactly one partition.",
+      "Partition ordering applies only to consumers in the same process, not across consumer restarts.",
+      "Records for `C17` are ordered within their partition, but there is no total ordering across all 12 partitions."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 60,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A consumer commits its broker offset before applying the corresponding payment side effect. The process crashes immediately after the offset commit. What failure mode can occur?",
+    "choices": [
+      "The message may not be redelivered, while the side effect was never applied: committing before processing can cause message loss from the consumer’s perspective.",
+      "The payment is applied twice because an offset commit always triggers a broker replay.",
+      "The broker atomically rolls back the offset when the consumer process exits.",
+      "The message remains locked to the dead consumer until the topic is deleted."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 61,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "In a quorum system with N replicas, reads require R acknowledgments and writes require W acknowledgments. Under the simple majority/intersection model, what condition ensures every read quorum intersects every completed write quorum?",
+    "choices": [
+      "`R = W`, regardless of N.",
+      "`R + W > N`; this gives quorum intersection, though it does not by itself specify every other requirement for linearizability.",
+      "`R + W < N`, so reads and writes can proceed independently.",
+      "`R × W = N`, because quorum sizes must multiply to the replica count."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 62,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "After an outage, 2,000 angry robot clients retry at exactly 1, 2, 4, and 8 seconds; the recovering service is getting hammered all over again. Which adjustment most directly reduces synchronization?",
+    "choices": [
+      "Remove exponential backoff and make every client retry every 10 milliseconds.",
+      "Add randomized jitter to exponential backoff (and cap attempts/deadlines), spreading retries across time instead of aligning clients.",
+      "Use the same fixed delay on all clients so the service can predict the traffic.",
+      "Increase the number of retries while keeping every retry scheduled at the same exact offsets."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 63,
+    "subject": "distributed_systems",
+    "category": "IT Edge Cases",
+    "question": "A queue receives work at a sustained average rate of 140 tasks/second, while workers complete 110 tasks/second. There is no admission control or scale-out. What happens to the backlog over time?",
+    "choices": [
+      "The backlog shrinks because workers process tasks in parallel.",
+      "The expected backlog grows without bound at roughly 30 tasks/second over the long run, because arrival rate exceeds service capacity.",
+      "The backlog oscillates around zero because the two rates are both finite.",
+      "The queue stabilizes because the broker stores messages on disk."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 64,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A URL validator resolves `attacker.example`, checks that the returned IP is public, then the HTTP client resolves the hostname again when connecting. How can DNS rebinding defeat this design?",
+    "choices": [
+      "DNS responses are authenticated by default, so the second resolution cannot differ.",
+      "The attacker can return a public address during validation and a private/internal address during the later connection; the validated address must be the one actually used for the connection.",
+      "DNS rebinding works only when the validator accepts IPv6 and the client uses IPv4.",
+      "DNS rebinding changes the URL scheme from HTTPS to FTP after TLS negotiation."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 65,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A backend safely validates the initial URL for an outbound fetch, but follows HTTP redirects automatically. The trusted URL redirects to `http://127.0.0.1/admin`. What must the backend do?",
+    "choices": [
+      "Trust redirects from a previously validated host because HTTP redirects are part of the same origin.",
+      "Validate every redirect target under the same SSRF policy, and ensure the connection uses the validated resolved address rather than re-resolving an unchecked hostname.",
+      "Disable TLS certificate checking so the redirect can be inspected before connecting.",
+      "Validate only the final response status; redirects cannot change the network destination."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 66,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A file service checks that `/uploads/user42/report` is inside an allowed directory, then opens that path later. An attacker can replace an intermediate directory with a symlink between the check and the open. What class of flaw is this?",
+    "choices": [
+      "A confused-deputy problem caused by the file descriptor being inherited by a child process.",
+      "A buffer overflow caused by a path longer than the filesystem block size.",
+      "A time-of-check-to-time-of-use (TOCTOU) race; the check and use are separate operations, so the path can resolve differently when opened.",
+      "A replay attack in which the same file contents are submitted twice."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 67,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A user-password database stores `SHA-256(salt || password)` with a unique random salt for each account. Why is this still weaker for password storage than a deliberately slow, memory-hard password hash?",
+    "choices": [
+      "SHA-256 supports only passwords shorter than 64 characters, while Argon2id has no input limit.",
+      "SHA-256 is intentionally fast, allowing attackers to test huge numbers of guesses; a password KDF such as Argon2id raises the time and memory cost per guess.",
+      "SHA-256 is reversible whenever the salt is public, while Argon2id encrypts the password.",
+      "A random salt makes password hashes identical across accounts, enabling rainbow-table attacks."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 68,
+    "subject": "networking",
+    "category": "IT Edge Cases",
+    "question": "A TCP server calls `read(fd, buf, 4096)` once and assumes the returned bytes contain exactly one complete application message. Why is that assumption invalid?",
+    "choices": [
+      "TCP preserves message boundaries only when the sender uses one `write` call per message.",
+      "The kernel always returns exactly the requested number of bytes unless the connection is closed.",
+      "TCP provides an ordered byte stream, not message boundaries; one read may return a partial message or multiple coalesced messages, so the application needs explicit framing.",
+      "TCP delivers messages in UDP datagrams, but the server forgot to inspect the datagram header."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 69,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A reviewer writes, \"Enable CORS and this unauthorized-client bullshit goes away.\" The developer allows `https://frontend.example` and concludes that unauthorized clients can no longer call the API. What is wrong with this conclusion?",
+    "choices": [
+      "CORS is an authentication protocol, but it requires an additional DNS TXT record.",
+      "CORS encrypts requests but does not encrypt responses.",
+      "CORS is a browser-enforced cross-origin access policy, not API authentication; non-browser clients can call the endpoint, and the server must still authenticate and authorize requests.",
+      "CORS blocks only GET requests, so POST requests are always unauthenticated."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 70,
+    "subject": "security_engineering",
+    "category": "IT Edge Cases",
+    "question": "A Python service launches a system utility with `subprocess.run(f\"tool --name {user_input}\", shell=True)`. Which change most directly removes shell metacharacter interpretation?",
+    "choices": [
+      "Call the executable with an argument list and `shell=False`, for example `subprocess.run([\"tool\", \"--name\", user_input], check=True)`.",
+      "Base64-encode the entire command string and pass it to `shell=True`.",
+      "Wrap `user_input` in double quotes inside the command string; quoting is sufficient for every shell and every input.",
+      "Remove spaces from the input but keep `shell=True`; shell injection requires spaces."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 71,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A disease affects 1% of a population. A test has 99% sensitivity and 95% specificity. A randomly selected person tests positive. Approximately what is the probability that the person actually has the disease?",
+    "choices": [
+      "About 16.7%: true positives are 0.01 × 0.99 = 0.0099, while false positives are 0.99 × 0.05 = 0.0495, so the posterior is 0.0099 / 0.0594.",
+      "About 95%, because specificity is 95%.",
+      "About 50%, because a positive result divides the population into two equally likely groups.",
+      "About 99%, because the test sensitivity is 99%."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 72,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A treatment has a higher success rate than a control in both low-risk and high-risk patient groups, but a lower success rate when all patients are pooled. No arithmetic error is present. What best explains this result?",
+    "choices": [
+      "The result proves that success rates are not probabilities.",
+      "The treatment must have been randomized incorrectly because subgroup comparisons cannot reverse.",
+      "The law of large numbers requires pooled success rates to preserve every subgroup ordering.",
+      "Simpson’s paradox: the groups have different weights across treatment and control, so aggregation reverses the within-group comparison."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 73,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A researcher performs 100 independent hypothesis tests, each with a true null hypothesis and a 5% false-positive rate. What is the probability of at least one false positive?",
+    "choices": [
+      "Approximately 99.4%, since `1 - 0.95^100` is about `0.994`.",
+      "Approximately 0.5%, since the individual error rates must be divided by 100.",
+      "Exactly 5%, because every test uses alpha = 0.05.",
+      "Exactly 50%, because half of all null hypotheses are expected to be rejected."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 74,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A team checks an A/B test every hour and stops as soon as an ordinary fixed-horizon p-value falls below 0.05. What is the main statistical risk?",
+    "choices": [
+      "Checking repeatedly makes the test underpowered but leaves the Type I error exactly unchanged.",
+      "The procedure is valid only when the sample size is even.",
+      "The p-value becomes a posterior probability that the treatment works.",
+      "Repeated unadjusted peeking inflates the long-run Type I error rate; the nominal 5% guarantee no longer applies to the stopping procedure."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 75,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A hospital study finds that patients with a certain biomarker have better outcomes. Investigators then restrict analysis to patients who were admitted to a specialist clinic, and the biomarker becomes negatively associated with outcomes. One plausible statistical explanation is:",
+    "choices": [
+      "Conditioning on any variable always removes all confounding.",
+      "Collider bias: conditioning on clinic admission, which can be influenced by both biomarker status and severity, can induce a spurious association between them.",
+      "A negative association proves that the biomarker is protective in the full population.",
+      "The central limit theorem reverses correlations whenever sample sizes decrease."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 76,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "Assume birthdays are independent and uniformly distributed over 365 days, ignoring leap years. For 23 people, which statement is closest to the probability that at least two share a birthday?",
+    "choices": [
+      "About 99.9%, because there are 23 × 22 ordered pairs.",
+      "Exactly 23%, because each person contributes one independent chance.",
+      "About 50.7%; it is easier to compute the complement that all 23 birthdays are distinct.",
+      "About 6.3%, because 23 / 365 is the collision probability."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 77,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A job succeeds independently on each attempt with probability 0.8, and attempts continue until the first success. What is the expected number of attempts?",
+    "choices": [
+      "5 attempts, because the expected failures are `(1 - p) / p` plus one.",
+      "1.25 attempts, because the geometric distribution has mean `1 / p`.",
+      "0.25 attempts, because the expected number of failures before success is `(1 - p) / p`.",
+      "0.8 attempts, because expected attempts equal the success probability."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 78,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A queue receives 120 requests per second and can complete 100 requests per second on average. Assume these rates remain constant and the queue has no admission limit. What is the long-run behavior?",
+    "choices": [
+      "The backlog remains bounded because the service rate is nonzero.",
+      "The queue is stable because every individual request eventually completes.",
+      "The backlog decreases by 20 requests per second because service is faster than arrival.",
+      "The expected backlog grows at about 20 requests per second; a finite mean service rate below the arrival rate cannot stabilize the queue."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 79,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A reported 95% confidence interval for a fixed but unknown parameter is [2.1, 3.4]. Under the standard frequentist interpretation, what does 95% refer to?",
+    "choices": [
+      "The parameter changes randomly and spends 95% of time in the interval.",
+      "The long-run coverage of the interval-generating procedure: across repeated samples, about 95% of intervals constructed this way contain the fixed parameter.",
+      "95% of observations in the sample lie between 2.1 and 3.4.",
+      "There is a 95% probability that the fixed parameter lies inside this already-computed interval."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 80,
+    "subject": "probability_and_statistics",
+    "category": "STEM",
+    "question": "A source emits independent binary symbols, with probability 1/8 of `1` and 7/8 of `0`. What is the Shannon entropy per symbol, approximately?",
+    "choices": [
+      "About 0.544 bits: `-(1/8)log2(1/8) - (7/8)log2(7/8)`.",
+      "About 0.875 bits, because the more common symbol dominates the distribution.",
+      "Exactly 1 bit, because the alphabet has two symbols.",
+      "About 0.125 bits, because entropy equals the probability of the rarer symbol."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 81,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "A policy says: \"A user may access the vault only if their badge is valid.\" Let A mean \"may access\" and B mean \"badge is valid.\" Which implication follows directly?",
+    "choices": [
+      "`A ↔ B`; access and a valid badge are equivalent.",
+      "`B → A`; a valid badge guarantees access.",
+      "`¬A → ¬B`; anyone denied access must have an invalid badge.",
+      "`A → B`; a valid badge is necessary for access, but the statement does not say that a valid badge is sufficient for access."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 82,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "What is the correct negation of the statement \"Every deployed service has an owner and an alert\"?",
+    "choices": [
+      "No deployed service has an owner and an alert.",
+      "There exists a deployed service that has both an owner and an alert.",
+      "`There exists at least one deployed service that has no owner or has no alert.`",
+      "Every deployed service has no owner and no alert."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 83,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "An argument has true premises and a false conclusion. What follows about its deductive status?",
+    "choices": [
+      "It is invalid: a valid deductive argument cannot have all true premises and a false conclusion.",
+      "It is valid but unsound, because validity permits false conclusions.",
+      "Nothing follows; validity depends only on whether the conclusion is popular.",
+      "It is sound, because the premises are true."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 84,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "A manager says: \"The deployment succeeded because the dashboard turned green; we know the dashboard is reliable because it turns green after successful deployments.\" What is the central reasoning problem?",
+    "choices": [
+      "The explanation is circular: the dashboard’s reliability and the deployment’s success are being supported by each other without independent evidence.",
+      "It is an argument from analogy, because dashboards resemble traffic lights.",
+      "It is a statistical proof that green dashboards cause successful deployments.",
+      "It is a valid modus tollens inference."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 85,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "A witness says, \"I saw the developer with the telescope.\" Without further context, what is the linguistic issue?",
+    "choices": [
+      "The phrase has attachment ambiguity: the telescope may describe the instrument used by the witness or an object associated with the developer.",
+      "It contains a dangling modifier that makes the sentence grammatically impossible.",
+      "It is a contradiction because a person cannot be seen through a telescope.",
+      "It is an example of a word with no possible referent."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 86,
+    "subject": "philosophy_of_science",
+    "category": "Humanities",
+    "question": "A researcher makes a risky prediction before collecting data. The result matches the prediction, but the same result would also have been predicted by dozens of competing theories. What should be said about the evidential strength?",
+    "choices": [
+      "The theory is proven because any successful prediction confirms it decisively.",
+      "The evidence is irrelevant because a prediction can support only one theory.",
+      "The theory is falsified because other theories also predicted the result.",
+      "The match is weakly discriminating evidence unless the prediction was substantially more likely under the researcher’s theory than under its rivals."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 87,
+    "subject": "epistemology",
+    "category": "Humanities",
+    "question": "A person believes a true proposition for good reasons, but the truth is correct only because of an accidental coincidence unrelated to those reasons. Which classic problem does this illustrate?",
+    "choices": [
+      "The categorical imperative, which evaluates actions by universal rules.",
+      "Cartesian dualism, which separates mind from body.",
+      "The problem of induction, which says no deductive proof of the future is possible.",
+      "A Gettier-style case: justified true belief may fail to amount to knowledge when the truth is reached through epistemic luck."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 88,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "A reviewer rants, \"These tests are fucking useless: every bug found in production was missed by tests.\" Which hidden assumption is needed for that conclusion, and why is it weak?",
+    "choices": [
+      "It assumes a test suite can be deterministic; deterministic tests cannot find bugs.",
+      "It assumes production and test environments are identical; if they were, tests would be useless by definition.",
+      "It assumes tests should detect every possible bug; missing some defects does not imply tests have no value, since they can still reduce defect probability or catch many classes of failures.",
+      "It assumes all production bugs are caused by compilers; this is always true."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 89,
+    "subject": "philosophy",
+    "category": "Humanities",
+    "question": "A night guard calls an unfamiliar alarm \"probably bullshit\" and says, \"I do not know whether it is real, so it is equally rational to evacuate and to stay.\" What is the key mistake?",
+    "choices": [
+      "Treating uncertainty about a proposition as making the available actions equally rational; decisions also depend on asymmetric consequences and expected loss.",
+      "Assuming that uncertainty always makes a proposition false.",
+      "Confusing a necessary condition with a sufficient condition.",
+      "Using a deductive argument where only an inductive argument is allowed."
+    ],
+    "answer": "A"
+  },
+  {
+    "id": 90,
+    "subject": "formal_logic",
+    "category": "Humanities",
+    "question": "A product rule says: \"If the cache is stale, refresh it.\" A developer observes that the cache was refreshed and concludes it must previously have been stale. What fallacy is this?",
+    "choices": [
+      "Modus ponens: from stale → refresh and stale, infer refresh.",
+      "Modus tollens: from stale → refresh and not refresh, infer not stale.",
+      "Disjunctive syllogism: from stale or fresh and not stale, infer fresh.",
+      "Affirming the consequent: from stale → refresh and refresh, the developer incorrectly infers stale."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 91,
+    "subject": "economics_and_incentives",
+    "category": "Social Sciences",
+    "question": "A company turns \"number of tickets closed\" into the sole performance target. Employees begin closing easy tickets, splitting work into artificial tickets, and avoiding difficult customer problems. Which principle best explains the behavior?",
+    "choices": [
+      "Comparative advantage: specialization always increases the real quality of outcomes.",
+      "Goodhart’s law: when a measure becomes a target, agents optimize the measure in ways that can break its usefulness as a proxy for the real goal.",
+      "The law of one price: identical services must have identical measured productivity.",
+      "The tragedy of the commons: a shared resource is necessarily depleted by private use."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 92,
+    "subject": "economics_and_incentives",
+    "category": "Social Sciences",
+    "question": "A manager (principal) cannot observe whether an employee (agent) is carefully maintaining a system after deployment. The employee receives the same pay regardless of maintenance effort. What problem is most directly present?",
+    "choices": [
+      "A negative externality: the employee’s salary raises the market price of labor.",
+      "A public good: one employee’s maintenance is non-rivalrous and non-excludable.",
+      "Adverse selection: the principal cannot observe the employee’s type before hiring.",
+      "Moral hazard: hidden post-contract effort creates incentives for the agent to take actions that may not align with the principal’s interests."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 93,
+    "subject": "economics_and_incentives",
+    "category": "Social Sciences",
+    "question": "A binding price ceiling is set below the market-clearing price for apartment rentals, while demand and supply are otherwise unchanged. What is the standard immediate prediction?",
+    "choices": [
+      "The ceiling has no effect because prices do not influence supply.",
+      "A surplus: landlords offer more units than renters want.",
+      "The equilibrium quantity rises because the price is lower.",
+      "A shortage: quantity demanded exceeds quantity supplied at the capped price."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 94,
+    "subject": "causal_inference",
+    "category": "Social Sciences",
+    "question": "A city evaluates a new policy using difference-in-differences. Before the policy, the treated city’s outcome was already trending upward much faster than the control city’s outcome. Why is the estimate suspect?",
+    "choices": [
+      "A pre-policy trend difference proves the policy has no causal effect.",
+      "The method is invalid whenever the treated group contains more people than the control group.",
+      "The parallel-trends assumption is doubtful; absent the policy, the two groups may not have followed similar trends, so the difference in differences may attribute pre-existing divergence to the policy.",
+      "Difference-in-differences requires the two groups to have identical outcome levels before treatment."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 95,
+    "subject": "economics_and_incentives",
+    "category": "Social Sciences",
+    "question": "A factory pollutes a river, imposing health costs on downstream residents who are not parties to the factory’s market transactions. In a competitive market without regulation, what is the likely output distortion?",
+    "choices": [
+      "Output is too low because downstream residents receive an implicit subsidy.",
+      "Output is too high relative to the social optimum because the factory’s private marginal cost omits the external damage.",
+      "Output is socially optimal because competitive prices always include every external cost.",
+      "Output is zero because negative externalities eliminate all private demand."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 96,
+    "subject": "systems_architecture",
+    "category": "Other",
+    "question": "A service consists of two independent components in series: both must be available for the service to work. Their availabilities are 0.99 and 0.99. What is the combined availability?",
+    "choices": [
+      "0.01 (1%), because the failure probabilities are multiplied instead.",
+      "0.99 (99%), because the weakest component determines availability in every series system.",
+      "0.9999 (99.99%), because independent availabilities are added.",
+      "0.9801 (98.01%), because series availability is the product when component failures are independent."
+    ],
+    "answer": "D"
+  },
+  {
+    "id": 97,
+    "subject": "systems_architecture",
+    "category": "Other",
+    "question": "A launch-day service looks fine at p50, but its p99 latency is completely fucked during bursts. Traces show handler execution time is stable, while time waiting in the request queue rises sharply. What is the best first diagnosis?",
+    "choices": [
+      "A CPU instruction-cache miss in every request handler, because p50 would remain unchanged.",
+      "Queueing saturation: burst arrival rate is temporarily approaching or exceeding service capacity, so tail latency grows in the waiting line even though handler time is stable.",
+      "A serialization bug in the response body, because queue wait time is unrelated to tail latency.",
+      "A DNS lookup issue on every request, because DNS latency appears as handler execution time in all tracing systems."
+    ],
+    "answer": "B"
+  },
+  {
+    "id": 98,
+    "subject": "information_theory",
+    "category": "Other",
+    "question": "A lossless compressor maps every possible 1,000-byte input to a unique output strictly shorter than 1,000 bytes. Why is such a compressor impossible for arbitrary inputs?",
+    "choices": [
+      "A compressor must preserve the original file name, which requires at least 1,000 bytes.",
+      "The claim fails only for encrypted data; arbitrary plaintext can always be shortened.",
+      "There are more possible 1,000-byte inputs than shorter output strings, so by the pigeonhole principle no one-to-one mapping can encode every input in fewer bytes.",
+      "Compression is impossible because bytes cannot be rearranged without losing entropy."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 99,
+    "subject": "systems_architecture",
+    "category": "Other",
+    "question": "A product manager says, \"Processor B is damn fast, so ship it.\" A has 99.99% successful completion and 400 ms p95 latency; B has 97% successful completion and 80 ms p95 latency. Product requirements mandate at least 99.9% completion. Which choice is defensible from the stated requirements?",
+    "choices": [
+      "Neither; p95 latency cannot be compared with a success percentage, so no decision is possible.",
+      "Either processor; a weighted average can make any hard requirement optional.",
+      "Processor A; B violates the hard reliability constraint, and lower latency cannot compensate for failing a mandatory minimum.",
+      "Processor B; latency is always more important than completion rate."
+    ],
+    "answer": "C"
+  },
+  {
+    "id": 100,
+    "subject": "reliability_engineering",
+    "category": "Other",
+    "question": "A monitoring dashboard reports 99.95% monthly availability, but the only 40-minute outage occurred during a planned migration and was excluded from the calculation. What is the most important caveat?",
+    "choices": [
+      "Availability cannot be calculated for a service that performs planned maintenance.",
+      "A 99.95% monthly value mathematically proves there were no outages longer than one minute.",
+      "Planned downtime is never experienced by users, so excluding it is universally correct.",
+      "The metric depends on the measurement policy: excluding planned downtime can make reported availability materially higher than user-perceived availability, so the SLO must define whether maintenance counts."
+    ],
+    "answer": "D"
+  }
+]
