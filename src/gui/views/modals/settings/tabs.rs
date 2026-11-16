@@ -64,6 +64,52 @@ impl SettingsModal {
                                     btn.outline()
                                 }
                             })),
+                    )
+                    .children(
+                        personas
+                            .iter()
+                            .find(|p| p.name == current_persona)
+                            .map(|sel_persona| {
+                                let pname = sel_persona.name.clone();
+                                let pgender = sel_persona.gender;
+                                let gender_opt = |target: crate::persona::PersonaGender, id: &str| {
+                                    let is_sel = pgender == target;
+                                    let pname = pname.clone();
+                                    let state_entity = state_entity.clone();
+                                    let btn = Button::new(id.to_string())
+                                        .with_size(Size::XSmall)
+                                        .label(target.label_ru())
+                                        .on_click(move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                s.set_persona_gender(&pname, target);
+                                                cx.notify();
+                                            });
+                                        });
+                                    if is_sel {
+                                        btn.primary()
+                                    } else {
+                                        btn.outline()
+                                    }
+                                };
+                                h_flex()
+                                    .pt_1()
+                                    .items_center()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .text_size(rems(0.75))
+                                            .text_color(COLOR_TEXT_MUTED)
+                                            .child(format!("Пол ASCII-арта ({}):", sel_persona.name)),
+                                    )
+                                    .child(gender_opt(
+                                        crate::persona::PersonaGender::Female,
+                                        "settings-persona-gender-f",
+                                    ))
+                                    .child(gender_opt(
+                                        crate::persona::PersonaGender::Male,
+                                        "settings-persona-gender-m",
+                                    ))
+                            }),
                     ),
             )
             .child(Self::render_bool_row(

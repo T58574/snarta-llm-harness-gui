@@ -280,6 +280,25 @@ impl AppState {
         self.has_explicit_emotion = false;
     }
 
+    pub fn set_persona_gender(
+        &mut self,
+        persona_name: &str,
+        gender: crate::persona::PersonaGender,
+    ) {
+        if let Err(e) = self
+            .workspace
+            .set_persona_gender(&self.paths, persona_name, gender)
+        {
+            self.status_notice = Some(format!("Не удалось сохранить пол персоны: {e}"));
+        }
+    }
+
+    pub fn toggle_active_persona_gender(&mut self) {
+        let name = self.workspace.persona.name.clone();
+        let next = self.workspace.persona.gender.toggled();
+        self.set_persona_gender(&name, next);
+    }
+
     pub fn switch_model(&mut self, model_file: &str) {
         let active_ctx = self.active_server_ctx();
         self.workspace
@@ -309,6 +328,8 @@ impl AppState {
             self.rescan_models();
         } else if modal == ActiveModal::Prepare {
             self.rescan_prepare();
+        } else if modal == ActiveModal::Personas {
+            self.workspace.reload_personas(&self.paths);
         }
         self.active_modal = Some(modal);
     }

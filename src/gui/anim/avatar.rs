@@ -1,4 +1,5 @@
 use super::DUR_AMBIENT;
+use crate::gui::state::AppState;
 use crate::gui::theme::{
     COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_ACCENT_GREEN, COLOR_ACCENT_GREEN_MUTED,
     COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
@@ -7,7 +8,8 @@ use crate::gui::theme::{
 };
 use crate::persona::PersonaGender;
 use gpui::*;
-use gpui_component::{ActiveTheme, h_flex, v_flex};
+use gpui_component::button::{Button, ButtonVariants as _};
+use gpui_component::{ActiveTheme, Sizable, Size, h_flex, v_flex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AvatarEmotion {
@@ -73,174 +75,260 @@ impl AvatarEmotion {
     }
 }
 
+#[cfg(test)]
+pub const ASCII_FACE_WIDTH: usize = 15;
+
 pub(crate) struct AsciiFace {
     pub top: &'static str,
+    pub hair: &'static str,
     pub brows: &'static str,
     pub eyes: &'static str,
     pub mouth: &'static str,
     pub chin: &'static str,
 }
 
+impl AsciiFace {
+    pub fn lines(&self) -> [&'static str; 6] {
+        [self.top, self.hair, self.brows, self.eyes, self.mouth, self.chin]
+    }
+}
+
 pub(crate) fn face_art(gender: PersonaGender, emotion: AvatarEmotion) -> AsciiFace {
+    const F_TOP: &str = "   .~~~~~~~.   ";
+    const F_HAIR: &str = "  / ~~~~~~~ \\  ";
+    const F_CHIN: &str = "  '-._____.-'  ";
+
+    const M_TOP: &str = "   .-------.   ";
+    const M_HAIR: &str = "  /|||||||||\\  ";
+    const M_CHIN: &str = "   \\_______/   ";
+
     match (gender, emotion) {
-        // Female persona faces
+        // Female persona faces (soft long hair frame, 15-col fixed-width pure ASCII)
         (PersonaGender::Female, AvatarEmotion::Neutral) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  _   _  \\",
-            eyes: "| (o) (o) |",
-            mouth: "\\   ._.   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  -   -  |\\ ",
+            eyes: " || (o) (o) || ",
+            mouth: " \\|   '-'   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Happy) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ^   ^  \\",
-            eyes: "| (^) (^) |",
-            mouth: "\\  \\___/  /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ^   ^  |\\ ",
+            eyes: " || (^) (^) || ",
+            mouth: " \\|  \\___/  |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Thinking) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ~   _  \\",
-            eyes: "| (o) (.) |",
-            mouth: "\\   .o.   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ~   -  |\\ ",
+            eyes: " || (o) (.) || ",
+            mouth: " \\|   .o.   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Focused) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  \\   /  \\",
-            eyes: "| [•] [•] |",
-            mouth: "\\   ---   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  \\   /  |\\ ",
+            eyes: " || (*) (*) || ",
+            mouth: " \\|   ---   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Curious) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ^   _  \\",
-            eyes: "| (O) (o) |",
-            mouth: "\\   .?.   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ^   -  |\\ ",
+            eyes: " || (O) (o) || ",
+            mouth: " \\|   .?.   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Surprised) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ^   ^  \\",
-            eyes: "| (O) (O) |",
-            mouth: "\\   (o)   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ^   ^  |\\ ",
+            eyes: " || (O) (O) || ",
+            mouth: " \\|   (o)   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Skeptical) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ~   \\  \\",
-            eyes: "| (o) (-) |",
-            mouth: "\\   ._/   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ~   \\  |\\ ",
+            eyes: " || (o) (-) || ",
+            mouth: " \\|   ._/   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Playful) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ^   ~  \\",
-            eyes: "| (o) (>) |",
-            mouth: "\\   \\_/   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ^   ~  |\\ ",
+            eyes: " || (o) (>) || ",
+            mouth: " \\|   \\_/   |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Proud) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ^   ^  \\",
-            eyes: "| (*) (*) |",
-            mouth: "\\  \\===/  /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ^   ^  |\\ ",
+            eyes: " || (*) (*) || ",
+            mouth: " \\|  \\===/  |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Warm) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  ~   ~  \\",
-            eyes: "| (•) (•) |",
-            mouth: "\\  `---'  /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  ~   ~  |\\ ",
+            eyes: " || (o) (o) || ",
+            mouth: " \\|  `---'  |/ ",
+            chin: F_CHIN,
         },
         (PersonaGender::Female, AvatarEmotion::Alert) => AsciiFace {
-            top: " .~\"\"\"~.",
-            brows: "/  \\   /  \\",
-            eyes: "| (!) (!) |",
-            mouth: "\\   ___   /",
-            chin: " '.___.'",
+            top: F_TOP,
+            hair: F_HAIR,
+            brows: " /|  \\   /  |\\ ",
+            eyes: " || (!) (!) || ",
+            mouth: " \\|   ___   |/ ",
+            chin: F_CHIN,
         },
 
-        // Male persona faces
+        // Male persona faces (short cropped hair + structured jaw, 15-col fixed-width pure ASCII)
         (PersonaGender::Male, AvatarEmotion::Neutral) => AsciiFace {
-            top: " ._____.",
-            brows: "|  _   _  |",
-            eyes: "| [o] [o] |",
-            mouth: "|   ___   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  -   -  |  ",
+            eyes: "  | [o] [o] |  ",
+            mouth: "  |   ---   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Happy) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ^   ^  |",
-            eyes: "| [^] [^] |",
-            mouth: "|  \\___/  |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ^   ^  |  ",
+            eyes: "  | [^] [^] |  ",
+            mouth: "  |  \\___/  |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Thinking) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ~   _  |",
-            eyes: "| [o] [.] |",
-            mouth: "|   .~.   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ~   -  |  ",
+            eyes: "  | [o] [.] |  ",
+            mouth: "  |   .~.   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Focused) => AsciiFace {
-            top: " ._____.",
-            brows: "|  \\   /  |",
-            eyes: "| [=] [=] |",
-            mouth: "|   ---   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  \\   /  |  ",
+            eyes: "  | [=] [=] |  ",
+            mouth: "  |   ---   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Curious) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ^   _  |",
-            eyes: "| [O] [o] |",
-            mouth: "|   .o.   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ^   -  |  ",
+            eyes: "  | [O] [o] |  ",
+            mouth: "  |   .o.   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Surprised) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ^   ^  |",
-            eyes: "| [O] [O] |",
-            mouth: "|   (O)   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ^   ^  |  ",
+            eyes: "  | [O] [O] |  ",
+            mouth: "  |   (O)   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Skeptical) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ~   \\  |",
-            eyes: "| [o] [-] |",
-            mouth: "|   ._/   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ~   \\  |  ",
+            eyes: "  | [o] [-] |  ",
+            mouth: "  |   ._/   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Playful) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ^   ~  |",
-            eyes: "| [o] [>] |",
-            mouth: "|   \\_/   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ^   ~  |  ",
+            eyes: "  | [o] [>] |  ",
+            mouth: "  |   \\_/   |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Proud) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ^   ^  |",
-            eyes: "| [*] [*] |",
-            mouth: "|  \\===/  |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ^   ^  |  ",
+            eyes: "  | [*] [*] |  ",
+            mouth: "  |  \\===/  |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Warm) => AsciiFace {
-            top: " ._____.",
-            brows: "|  ~   ~  |",
-            eyes: "| [•] [•] |",
-            mouth: "|  `---'  |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  ~   ~  |  ",
+            eyes: "  | [o] [o] |  ",
+            mouth: "  |  `---'  |  ",
+            chin: M_CHIN,
         },
         (PersonaGender::Male, AvatarEmotion::Alert) => AsciiFace {
-            top: " ._____.",
-            brows: "|  \\   /  |",
-            eyes: "| [!] [!] |",
-            mouth: "|   ___   |",
-            chin: " \\_______/",
+            top: M_TOP,
+            hair: M_HAIR,
+            brows: "  |  \\   /  |  ",
+            eyes: "  | [!] [!] |  ",
+            mouth: "  |   ___   |  ",
+            chin: M_CHIN,
         },
     }
+}
+
+fn render_face_grid(
+    art: &AsciiFace,
+    font_size: Pixels,
+    line_height: Pixels,
+    color: Hsla,
+    mono: SharedString,
+) -> impl IntoElement {
+    v_flex()
+        .items_start()
+        .font_family(mono)
+        .text_size(font_size)
+        .line_height(line_height)
+        .text_color(color)
+        .children(
+            art.lines()
+                .into_iter()
+                .map(|line| div().whitespace_nowrap().child(line)),
+        )
+}
+
+/// Renders a miniature static ASCII portrait for persona picker cards.
+pub fn render_mini_avatar(
+    gender: PersonaGender,
+    emotion: AvatarEmotion,
+    cx: &App,
+) -> impl IntoElement {
+    let art = face_art(gender, emotion);
+    let (accent, accent_bg) = match gender {
+        PersonaGender::Female => (COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED),
+        PersonaGender::Male => (COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED),
+    };
+    let mono = cx.theme().mono_font_family.clone();
+
+    v_flex()
+        .items_center()
+        .justify_center()
+        .flex_shrink_0()
+        .px_1p5()
+        .py_1()
+        .rounded_md()
+        .bg(accent_bg)
+        .border_1()
+        .border_color(accent.opacity(0.4))
+        .child(render_face_grid(&art, px(8.5), px(9.5), accent, mono))
 }
 
 /// Renders the compact live ASCII persona card for the sidebar HUD.
@@ -250,6 +338,7 @@ pub fn render_sidebar_avatar(
     emotion: AvatarEmotion,
     thought: Option<&str>,
     is_generating: bool,
+    state_entity: &Entity<AppState>,
     cx: &App,
 ) -> impl IntoElement {
     let art = face_art(gender, emotion);
@@ -262,7 +351,7 @@ pub fn render_sidebar_avatar(
 
     let card = v_flex()
         .w_full()
-        .p_2p5()
+        .p_2()
         .rounded_lg()
         .bg(COLOR_BG_CANVAS)
         .border_1()
@@ -271,56 +360,54 @@ pub fn render_sidebar_avatar(
         .child(
             h_flex()
                 .items_center()
-                .gap_2p5()
+                .gap_2()
                 .child(
                     v_flex()
                         .items_center()
                         .justify_center()
-                        .px_2()
-                        .py_1p5()
+                        .flex_shrink_0()
+                        .px_1p5()
+                        .py_1()
                         .rounded_md()
                         .bg(accent_bg)
                         .border_1()
                         .border_color(accent.opacity(0.45))
-                        .font_family(mono)
-                        .text_size(px(10.5))
-                        .line_height(px(11.5))
-                        .text_color(accent)
-                        .child(art.top)
-                        .child(art.brows)
-                        .child(art.eyes)
-                        .child(art.mouth)
-                        .child(art.chin),
+                        .child(render_face_grid(&art, px(9.0), px(10.5), accent, mono)),
                 )
                 .child(
                     v_flex()
                         .flex_1()
                         .min_w_0()
-                        .gap_1()
+                        .gap_1p5()
+                        .child(
+                            div()
+                                .w_full()
+                                .truncate()
+                                .text_size(rems(0.85))
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .text_color(COLOR_TEXT_PRIMARY)
+                                .child(persona_name.to_string()),
+                        )
                         .child(
                             h_flex()
                                 .items_center()
-                                .justify_between()
                                 .gap_1()
                                 .child(
-                                    div()
-                                        .flex_1()
-                                        .min_w_0()
-                                        .truncate()
-                                        .text_size(rems(0.85))
-                                        .font_weight(FontWeight::SEMIBOLD)
-                                        .text_color(COLOR_TEXT_PRIMARY)
-                                        .child(persona_name.to_string()),
-                                )
-                                .child(
-                                    div()
-                                        .px_1p5()
-                                        .py_0p5()
-                                        .rounded_sm()
-                                        .bg(COLOR_BG_ELEVATED)
-                                        .text_size(rems(0.65))
-                                        .text_color(COLOR_TEXT_MUTED)
-                                        .child(gender.label_ru()),
+                                    Button::new("sidebar-toggle-gender")
+                                        .secondary()
+                                        .outline()
+                                        .with_size(Size::XSmall)
+                                        .label(gender.label_ru())
+                                        .tooltip("Нажмите, чтобы переключить пол ASCII-арта")
+                                        .on_click({
+                                            let state_entity = state_entity.clone();
+                                            move |_, _, cx| {
+                                                state_entity.update(cx, |s, cx| {
+                                                    s.toggle_active_persona_gender();
+                                                    cx.notify();
+                                                });
+                                            }
+                                        }),
                                 ),
                         )
                         .child(
@@ -367,6 +454,7 @@ pub fn render_hero_avatar(
     gender: PersonaGender,
     emotion: AvatarEmotion,
     thought: Option<&str>,
+    state_entity: &Entity<AppState>,
     cx: &App,
 ) -> impl IntoElement {
     let art = face_art(gender, emotion);
@@ -381,21 +469,13 @@ pub fn render_hero_avatar(
             v_flex()
                 .items_center()
                 .justify_center()
-                .px_6()
-                .py_4()
+                .px_5()
+                .py_3p5()
                 .rounded_xl()
                 .bg(accent_bg)
                 .border_1()
                 .border_color(accent.opacity(0.55))
-                .font_family(mono)
-                .text_size(px(16.0))
-                .line_height(px(19.0))
-                .text_color(accent)
-                .child(art.top)
-                .child(art.brows)
-                .child(art.eyes)
-                .child(art.mouth)
-                .child(art.chin)
+                .child(render_face_grid(&art, px(15.0), px(18.0), accent, mono))
                 .with_animation(
                     "hero-ascii-breathe",
                     Animation::new(DUR_AMBIENT)
@@ -419,6 +499,23 @@ pub fn render_hero_avatar(
                         .child(persona_name.to_string()),
                 )
                 .child(
+                    Button::new("hero-toggle-gender")
+                        .secondary()
+                        .outline()
+                        .with_size(Size::XSmall)
+                        .label(gender.label_ru())
+                        .tooltip("Нажмите, чтобы переключить пол ASCII-арта")
+                        .on_click({
+                            let state_entity = state_entity.clone();
+                            move |_, _, cx| {
+                                state_entity.update(cx, |s, cx| {
+                                    s.toggle_active_persona_gender();
+                                    cx.notify();
+                                });
+                            }
+                        }),
+                )
+                .child(
                     div()
                         .px_2()
                         .py_0p5()
@@ -427,8 +524,8 @@ pub fn render_hero_avatar(
                         .border_1()
                         .border_color(COLOR_BORDER)
                         .text_size(rems(0.72))
-                        .text_color(COLOR_TEXT_MUTED)
-                        .child(format!("{} · {}", gender.label_ru(), emotion.label_ru())),
+                        .text_color(accent)
+                        .child(emotion.label_ru()),
                 ),
         )
         .child(
@@ -449,7 +546,7 @@ mod tests {
     use super::*;
 
     #[core::prelude::v1::test]
-    fn emotion_parser_and_faces_cover_both_genders() {
+    fn emotion_parser_and_faces_cover_both_genders_with_uniform_ascii_width() {
         let emotions = [
             ("happy", AvatarEmotion::Happy),
             ("thinking", AvatarEmotion::Thinking),
@@ -469,9 +566,15 @@ mod tests {
             assert_eq!(parsed, expected);
             let f_face = face_art(PersonaGender::Female, parsed);
             let m_face = face_art(PersonaGender::Male, parsed);
-            assert!(!f_face.eyes.is_empty());
-            assert!(!m_face.eyes.is_empty());
             assert_ne!(f_face.top, m_face.top);
+            for line in f_face.lines().into_iter().chain(m_face.lines()) {
+                assert!(line.is_ascii(), "non-ASCII char in line: {line:?}");
+                assert_eq!(
+                    line.chars().count(),
+                    ASCII_FACE_WIDTH,
+                    "line width mismatch in {line:?}"
+                );
+            }
         }
     }
 }

@@ -3,9 +3,11 @@ use std::io;
 use std::time::Duration;
 
 pub const GITHUB_API_BASE: &str = "https://api.github.com/repos";
+pub const GITHUB_WEB_BASE: &str = "https://github.com";
 pub const HTTP_TIMEOUT_SECS: u64 = 20;
-pub const USER_AGENT: &str = "snarta/0.1";
+pub const USER_AGENT: &str = "snarta-llm-harness-gui/0.1";
 pub const DEFAULT_GFX_TARGET: &str = "gfx110X";
+const MAX_WEB_FALLBACK_TAGS: usize = 5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendKind {
@@ -93,17 +95,47 @@ pub fn fetch_candidates(
     Ok(out)
 }
 
-fn fetch_repo_releases(repo: &str) -> io::Result<Vec<GhRelease>> {
-    let url = format!("{GITHUB_API_BASE}/{repo}/releases?per_page=5");
+fn build_http_agent() -> ureq::Agent {
     let config = ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(HTTP_TIMEOUT_SECS)))
         .build();
-    let agent: ureq::Agent = config.into();
+    config.into()
+}
 
-    let mut resp = agent
+fn github_auth_token() -> Option<String> {
+    std::env::var("GITHUB_TOKEN")
+        .ok()
+        .or_else(|| std::env::var("GH_TOKEN").ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+fn fetch_repo_releases(repo: &str) -> io::Result<Vec<GhRelease>> {
+    match fetch_repo_releases_api(repo) {
+        Ok(releases) => Ok(releases),
+        Err(api_err) => match fetch_repo_releases_web(repo) {
+            Ok(releases) if !releases.is_empty() => Ok(releases),
+            Ok(_) => Err(api_err),
+            Err(web_err) => Err(io::Error::other(format!("{api_err}; web fallback: {web_err}"))),
+        },
+    }
+}
+
+fn fetch_repo_releases_api(repo: &str) -> io::Result<Vec<GhRelease>> {
+    let url = format!("{GITHUB_API_BASE}/{repo}/releases?per_page=5");
+    let agent = build_http_agent();
+
+    let mut req = agent
         .get(&url)
         .header("User-Agent", USER_AGENT)
         .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+
+    if let Some(token) = github_auth_token() {
+        req = req.header("Authorization", &format!("Bearer {token}"));
+    }
+
+    let mut resp = req
         .call()
         .map_err(|e| io::Error::other(format!("GitHub API request failed ({repo}): {e}")))?;
 
@@ -113,6 +145,135 @@ fn fetch_repo_releases(repo: &str) -> io::Result<Vec<GhRelease>> {
             format!("bad JSON ({repo}): {e}"),
         )
     })
+}
+
+fn fetch_repo_releases_web(repo: &str) -> io::Result<Vec<GhRelease>> {
+    let agent = build_http_agent();
+    let atom_url = format!("{GITHUB_WEB_BASE}/{repo}/releases.atom");
+    let mut atom_resp = agent
+        .get(&atom_url)
+        .header("User-Agent", USER_AGENT)
+        .header("Accept", "application/atom+xml,application/xml,text/xml")
+        .call()
+        .map_err(|e| io::Error::other(format!("GitHub atom request failed ({repo}): {e}")))?;
+    let atom_body = atom_resp
+        .body_mut()
+        .read_to_string()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("atom read error: {e}")))?;
+
+    let tags = parse_atom_release_tags(&atom_body, MAX_WEB_FALLBACK_TAGS);
+    let mut releases = Vec::new();
+    for tag in tags {
+        let assets_url = format!("{GITHUB_WEB_BASE}/{repo}/releases/expanded_assets/{tag}");
+        let Ok(mut assets_resp) = agent
+            .get(&assets_url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "text/html")
+            .call()
+        else {
+            continue;
+        };
+        let Ok(html) = assets_resp.body_mut().read_to_string() else {
+            continue;
+        };
+        let assets = parse_expanded_assets_html(repo, &tag, &html);
+        if !assets.is_empty() {
+            releases.push(GhRelease {
+                tag_name: tag,
+                draft: false,
+                prerelease: false,
+                assets,
+            });
+        }
+    }
+    Ok(releases)
+}
+
+fn parse_atom_release_tags(atom: &str, max_tags: usize) -> Vec<String> {
+    let mut tags = Vec::new();
+    let needle = "/releases/tag/";
+    let mut rest = atom;
+    while let Some(pos) = rest.find(needle) {
+        let after = &rest[pos + needle.len()..];
+        let end = after
+            .find(['"', '\'', '<', '&', '?', '#', ' ', '\n', '\r'])
+            .unwrap_or(after.len());
+        let tag = after[..end].trim();
+        if !tag.is_empty() && !tags.iter().any(|t| t == tag) {
+            tags.push(tag.to_string());
+            if tags.len() >= max_tags {
+                break;
+            }
+        }
+        rest = &after[end..];
+    }
+    tags
+}
+
+fn parse_expanded_assets_html(repo: &str, tag: &str, html: &str) -> Vec<GhAsset> {
+    let mut assets = Vec::new();
+    let dl_prefix = format!("/{repo}/releases/download/{tag}/");
+    for chunk in html.split("<li").skip(1) {
+        let Some(href_pos) = chunk.find(&dl_prefix) else {
+            continue;
+        };
+        let href_start = &chunk[href_pos..];
+        let Some(href_end) = href_start.find('"') else {
+            continue;
+        };
+        let href = &href_start[..href_end];
+        let Some(name) = href.rsplit('/').next().filter(|n| !n.is_empty()) else {
+            continue;
+        };
+        let browser_download_url = format!("{GITHUB_WEB_BASE}{href}");
+        let after_link = &href_start[href_end..];
+        let size = extract_size_from_li(after_link).unwrap_or(0);
+        if !assets.iter().any(|a: &GhAsset| a.name == name) {
+            assets.push(GhAsset {
+                name: name.to_string(),
+                browser_download_url,
+                size,
+            });
+        }
+    }
+    assets
+}
+
+fn extract_size_from_li(li_tail: &str) -> Option<u64> {
+    let mut rest = li_tail;
+    while let Some(gt) = rest.find('>') {
+        let after_gt = &rest[gt + 1..];
+        let Some(lt) = after_gt.find('<') else {
+            break;
+        };
+        let text = after_gt[..lt].trim();
+        if let Some(bytes) = parse_human_size(text) {
+            return Some(bytes);
+        }
+        rest = &after_gt[lt..];
+    }
+    None
+}
+
+fn parse_human_size(raw: &str) -> Option<u64> {
+    let mut parts = raw.split_whitespace();
+    let num_str = parts.next()?;
+    let unit = parts.next()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    let val: f64 = num_str.parse().ok()?;
+    if !val.is_finite() || val < 0.0 {
+        return None;
+    }
+    let mult: f64 = match unit.to_ascii_lowercase().as_str() {
+        "b" | "byte" | "bytes" => 1.0,
+        "kb" | "kib" => 1024.0,
+        "mb" | "mib" => 1024.0 * 1024.0,
+        "gb" | "gib" => 1024.0 * 1024.0 * 1024.0,
+        _ => return None,
+    };
+    Some((val * mult).round() as u64)
 }
 
 fn filter_releases(repo: &str, releases: &[GhRelease], gfx_target: &str) -> Vec<ReleaseCandidate> {
@@ -284,5 +445,44 @@ mod tests {
             "gfx110X",
         );
         assert_eq!(cuda, None);
+    }
+
+    #[test]
+    fn parses_atom_tags_and_expanded_assets_html() {
+        let atom = r#"
+        <feed>
+          <entry><link href="https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1377"/></entry>
+          <entry><link href="https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1377"/></entry>
+          <entry><link href="https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1376"/></entry>
+        </feed>
+        "#;
+        assert_eq!(parse_atom_release_tags(atom, 5), vec!["b1377", "b1376"]);
+
+        let html = r#"
+        <ul>
+          <li class="Box-row">
+            <a href="/lemonade-sdk/llamacpp-rocm/releases/download/b1377/llama-b1377-windows-rocm-gfx110X-x64.zip" rel="nofollow">
+              <span>llama-b1377-windows-rocm-gfx110X-x64.zip</span>
+            </a>
+            <span>sha256:abc</span>
+            <span>512 MB</span>
+          </li>
+          <li class="Box-row">
+            <a href="/lemonade-sdk/llamacpp-rocm/releases/download/b1377/llama-b1377-ubuntu-rocm-gfx110X-x64.zip">
+              <span>llama-b1377-ubuntu-rocm-gfx110X-x64.zip</span>
+            </a>
+            <span>1.06 GB</span>
+          </li>
+        </ul>
+        "#;
+        let assets = parse_expanded_assets_html("lemonade-sdk/llamacpp-rocm", "b1377", html);
+        assert_eq!(assets.len(), 2);
+        assert_eq!(assets[0].name, "llama-b1377-windows-rocm-gfx110X-x64.zip");
+        assert_eq!(
+            assets[0].browser_download_url,
+            "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1377/llama-b1377-windows-rocm-gfx110X-x64.zip"
+        );
+        assert_eq!(assets[0].size, 512 * 1024 * 1024);
+        assert_eq!(assets[1].size, (1.06 * 1024.0 * 1024.0 * 1024.0_f64).round() as u64);
     }
 }

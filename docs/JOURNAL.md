@@ -1,18 +1,19 @@
 # Project Journal — snarta-llm-harness-gui
 
-- `last_updated`: 2026-11-16T03:48:01Z
+- `last_updated`: 2026-11-16T04:07:30Z
 - `scope`: Snarta LLM Harness & GPUI desktop client (`snarta-llm-harness-gui`)
 - `owner`: T58574
 
 ## Current State
 
-- 2026-11-16: GUI-only binary (`src/main.rs`) with `gpui-kit`/`gpui-component` 0.9.1, Lucide icons (`src/gui/icons.rs`), `#141413`/`#faf9f5`/`#d97757` dark brand theme (`src/gui/theme.rs`), gender-aware ASCII persona avatars and model-driven `set_emotion` tool (`src/gui/anim/avatar.rs`, `src/gui/views/tools/emotion.rs`), and humanized docs (`README.md`, `README.ru.md`, `bench/README.md`). Supersedes 2026-11-13 CLI-dispatch baseline (`src/doctor.rs`, `src/winpath.rs`, and CLI commands removed). (`verified-this-turn`, `cargo test` 68/68 and `cargo check --target x86_64-pc-windows-gnu` passed with 0 warnings)
+- 2026-11-16: GUI-only binary (`src/main.rs`) with `gpui-kit`/`gpui-component` 0.9.1, Lucide icons (`src/gui/icons.rs`), `#141413`/`#faf9f5`/`#d97757` dark brand theme (`src/gui/theme.rs`), uniform 15-column pure-ASCII gender-aware persona avatars (`src/gui/anim/avatar.rs`), UI gender persistence (`src/persona.rs`, `src/gui/views/modals/personas.rs`, `src/gui/views/modals/settings/tabs.rs`, sidebar/hero toggle), `set_emotion` tool (`src/gui/views/tools/emotion.rs`), and GitHub releases web fallback (`releases.atom` + `expanded_assets` when `api.github.com` returns 403) in `src/runtime/releases.rs`. (`verified-this-turn`, `cargo test` 69/69 and `cargo check --target x86_64-pc-windows-gnu` passed with 0 warnings)
 
 ## Active Decisions
 
 - **GUI-only Windows subsystem & headless subprocesses**: Keep `#![windows_subsystem = "windows"]` with pure GUI startup in `src/main.rs` (supersedes 2026-11-13 conditional `AttachConsole` CLI decision), and `CREATE_NO_WINDOW` (`0x0800_0000`) when spawning `llama-server.exe` and shell subprocesses (`src/server/launch.rs`, `src/runtime/install.rs`, `src/tools/shell.rs`). (`verified-this-turn`)
 - **UI component library & icons**: Use `gpui-component` 0.9.1 widgets (`TabBar::segmented`, `Switch`, `Checkbox`, outlined `Button`) and Lucide SVG icons from `gpui-kit-assets` wrapped in `src/gui/icons.rs`; fall back to default GPUI UI/mono fonts because `Science Gothic` and `Geologica` are not installed on the build host. (`verified-this-turn`)
-- **Live persona presence (`set_emotion`)**: Parse `gender` (`female`/`male`) in persona frontmatter (`src/persona.rs`), render gender-specific ASCII faces in sidebar and empty chat stage (`src/gui/anim/avatar.rs`), and expose the `set_emotion` tool (`src/tools/registry.rs`, `src/chat/engine.rs`) alongside automatic thinking/tool state transitions. (`verified-this-turn`)
+- **Live persona presence (`set_emotion`) & ASCII art**: Use uniform 15-column pure-ASCII 6-line portraits rendered with `.items_start()` (`src/gui/anim/avatar.rs`) to prevent half-character centering drift and Unicode fallback width mismatch; persist `gender` (`female`/`male`) into persona `+++` frontmatter via `set_persona_gender` (`src/persona.rs`) exposed in `PersonasModal` (with mini preview), `SettingsModal` (`Общие`), and clickable gender pills on sidebar/hero cards. (`verified-this-turn`)
+- **GitHub release discovery fallback**: Support optional `GITHUB_TOKEN`/`GH_TOKEN` on `api.github.com` requests and fall back automatically to `github.com/{repo}/releases.atom` + `/releases/expanded_assets/{tag}` when the REST API fails or hits the unauthenticated 60 req/hr 403 rate limit (`src/runtime/releases.rs`). (`verified-this-turn`)
 - **GPUI macro & test disambiguation**: Set `#![recursion_limit = "1024"]` in `src/main.rs` and annotate synchronous unit tests in GPUI-coupled modules with `#[core::prelude::v1::test]` so `gpui::test` does not shadow `#[test]`. (`verified-earlier`)
 - **GPUI asset & modal lifecycle**: Initialize `gpui_kit::application().with_assets(gpui_kit::assets::AllAssets)` for Lucide SVG icons, store reactive modal state in `Rc<RefCell<State>>` with `state_entity.update(...)`, and initialize `mpsc::channel()` in `InputDock::new` rather than `render()`. (`verified-earlier`)
 - **Context & settings resolution**: Resolve per-model settings through `Config::model_settings(&self, name)` (falling back to `[model_defaults]`), unify context config under `model_defaults.ctx` and `vram.max_ctx_ceiling`, and preserve requested `chosen_ctx` in `calculate_fit` while reporting `spill_mib` when overflowing into shared RAM. (`verified-earlier`)
@@ -50,4 +51,4 @@
 
 ## Verification Log
 
-- **2026-11-16**: `cargo test` (68/68 passed, 0 warnings) and `cargo check --target x86_64-pc-windows-gnu` (0 errors, 0 warnings) after upgrading `gpui-kit`/`gpui-component` to `0.9.1`, `sysinfo` to `0.40.3`, removing dead CLI/code, and adding the brand UI and `set_emotion` ASCII avatar (`verified-this-turn`). Supersedes 2026-11-13 verification entry.
+- **2026-11-16**: `cargo test` (69/69 passed, 0 warnings) and `cargo check --target x86_64-pc-windows-gnu` (0 errors, 0 warnings) after adding GitHub `releases.atom` + `expanded_assets` fallback, uniform 15-column ASCII avatar redesign, and UI persona gender controls (`verified-this-turn`). Supersedes earlier 2026-11-16 68/68 entry.

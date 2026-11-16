@@ -194,6 +194,44 @@ impl Workspace {
         }
     }
 
+    /// Reloads available personas from disk and refreshes the active persona metadata.
+    pub fn reload_personas(&mut self, paths: &AppPaths) {
+        if let Ok(list) = persona::list_personas(&paths.personas_dir()) {
+            self.available_personas = list;
+            if let Some(updated) = self
+                .available_personas
+                .iter()
+                .find(|p| p.name.eq_ignore_ascii_case(&self.persona.name))
+                .cloned()
+            {
+                self.persona = updated;
+            }
+        }
+    }
+
+    /// Persists the ASCII avatar gender for a persona and refreshes in-memory state.
+    pub fn set_persona_gender(
+        &mut self,
+        paths: &AppPaths,
+        persona_name: &str,
+        gender: persona::PersonaGender,
+    ) -> io::Result<()> {
+        let updated = persona::set_persona_gender(&paths.personas_dir(), persona_name, gender)?;
+        if let Some(slot) = self
+            .available_personas
+            .iter_mut()
+            .find(|p| p.name.eq_ignore_ascii_case(&updated.name))
+        {
+            *slot = updated.clone();
+        } else {
+            self.available_personas.push(updated.clone());
+        }
+        if self.persona.name.eq_ignore_ascii_case(&updated.name) {
+            self.persona = updated;
+        }
+        Ok(())
+    }
+
     /// Selects a new active model file, persisting it to configuration.
     pub fn switch_model(
         &mut self,

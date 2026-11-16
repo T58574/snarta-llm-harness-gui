@@ -42,19 +42,20 @@ pub fn render_emotion_card(
         .gap_2p5()
         .child(
             v_flex()
-                .items_center()
+                .items_start()
                 .justify_center()
+                .flex_shrink_0()
                 .px_1p5()
                 .py_1()
                 .rounded_md()
                 .bg(accent_bg)
                 .font_family(mono)
-                .text_size(px(9.5))
-                .line_height(px(10.5))
+                .text_size(px(9.0))
+                .line_height(px(10.0))
                 .text_color(accent)
-                .child(art.brows)
-                .child(art.eyes)
-                .child(art.mouth),
+                .child(div().whitespace_nowrap().child(art.brows))
+                .child(div().whitespace_nowrap().child(art.eyes))
+                .child(div().whitespace_nowrap().child(art.mouth)),
         )
         .child(
             v_flex()

@@ -42,6 +42,20 @@ impl PersonaGender {
             Self::Male => "Мужской",
         }
     }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Female => "female",
+            Self::Male => "male",
+        }
+    }
+
+    pub fn toggled(self) -> Self {
+        match self {
+            Self::Female => Self::Male,
+            Self::Male => Self::Female,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,6 +174,67 @@ fn split_optional_toml_frontmatter(raw: &str) -> (Option<String>, Option<String>
     (None, None, trimmed)
 }
 
+/// Persists `gender` into the TOML frontmatter (`+++`) of the named persona file,
+/// preserving existing metadata and prompt body, and returns the reloaded `Persona`.
+pub fn set_persona_gender(
+    personas_dir: &Path,
+    name: &str,
+    gender: PersonaGender,
+) -> io::Result<Persona> {
+    let existing = load_persona(personas_dir, name)?;
+    let raw = fs::read_to_string(&existing.path)?;
+    let trimmed = raw.trim_start_matches('\u{feff}');
+
+    let mut updated_content = None;
+    for delim in ["+++", "---"] {
+        if let Some(rest) = trimmed.strip_prefix(delim)
+            && let Some(after_first_nl) = rest
+                .strip_prefix('\n')
+                .or_else(|| rest.strip_prefix("\r\n"))
+            && let Some(end_idx) = after_first_nl.find(&format!("\n{delim}"))
+        {
+            let header = after_first_nl[..end_idx].trim_end_matches('\r');
+            let tail = &after_first_nl[end_idx + 1 + delim.len()..];
+            let body = tail
+                .strip_prefix('\n')
+                .or_else(|| tail.strip_prefix("\r\n"))
+                .unwrap_or(tail);
+
+            let new_header = if let Ok(mut table) = toml::from_str::<toml::Table>(header) {
+                table.insert(
+                    "gender".to_string(),
+                    toml::Value::String(gender.as_str().to_string()),
+                );
+                toml::to_string(&table).unwrap_or_else(|_| format!("gender = \"{}\"\n", gender.as_str()))
+            } else {
+                let mut lines: Vec<String> = header
+                    .lines()
+                    .filter(|l| {
+                        let k = l.split(['=', ':']).next().map(str::trim).unwrap_or("");
+                        !k.eq_ignore_ascii_case("gender")
+                    })
+                    .map(str::to_string)
+                    .collect();
+                lines.push(format!("gender = \"{}\"", gender.as_str()));
+                format!("{}\n", lines.join("\n"))
+            };
+
+            let mut out = format!("+++\n{new_header}+++\n");
+            out.push_str(body);
+            updated_content = Some(out);
+            break;
+        }
+    }
+
+    let final_text = updated_content.unwrap_or_else(|| {
+        let body = trimmed.trim_start_matches(['\r', '\n']);
+        format!("+++\ngender = \"{}\"\n+++\n{body}", gender.as_str())
+    });
+
+    fs::write(&existing.path, final_text)?;
+    load_persona_file(&existing.path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,6 +268,20 @@ mod tests {
         fs::write(&agent, "Work fast.\n").unwrap();
         let a = load_persona(&dir, "agent").unwrap();
         assert_eq!(a.gender, PersonaGender::Male);
+
+        let updated_coach = set_persona_gender(&dir, "coach", PersonaGender::Male).unwrap();
+        assert_eq!(updated_coach.gender, PersonaGender::Male);
+        assert_eq!(updated_coach.description.as_deref(), Some("Strict coach"));
+        assert_eq!(updated_coach.system_prompt, "Keep answers under 3 sentences.");
+
+        let plain = dir.join("roksana_main.md");
+        fs::write(&plain, "Привет, я Роксана.\n").unwrap();
+        let updated_plain = set_persona_gender(&dir, "roksana_main", PersonaGender::Male).unwrap();
+        assert_eq!(updated_plain.gender, PersonaGender::Male);
+        assert_eq!(updated_plain.system_prompt, "Привет, я Роксана.");
+        let back_female = set_persona_gender(&dir, "roksana_main", PersonaGender::Female).unwrap();
+        assert_eq!(back_female.gender, PersonaGender::Female);
+        assert_eq!(back_female.system_prompt, "Привет, я Роксана.");
 
         let _ = fs::remove_dir_all(&dir);
     }

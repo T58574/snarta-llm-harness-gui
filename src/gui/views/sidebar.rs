@@ -42,6 +42,7 @@ impl Sidebar {
                 avatar_emotion,
                 avatar_thought.as_deref(),
                 is_generating,
+                state_entity,
                 cx,
             ))
             .child(

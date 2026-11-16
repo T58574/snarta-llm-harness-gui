@@ -84,6 +84,7 @@ impl ChatView {
                         persona_gender,
                         avatar_emotion,
                         avatar_thought.as_deref(),
+                        state_entity,
                         cx,
                     ))
                     .into_any_element()
