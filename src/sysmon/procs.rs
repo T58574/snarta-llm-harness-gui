@@ -4,15 +4,15 @@ use sysinfo::{Pid, ProcessesToUpdate, System};
 
 pub const BYTES_PER_MIB: u64 = 1024 * 1024;
 
-static SHARED_SYS: OnceLock<Mutex<System>> = OnceLock::new();
+static SHARED_SYS: OnceLock<Option<Mutex<System>>> = OnceLock::new();
 
-fn with_shared_sys<F, R>(f: F) -> R
+fn with_shared_sys<F, R>(f: F) -> Option<R>
 where
     F: FnOnce(&mut System) -> R,
 {
-    let mtx = SHARED_SYS.get_or_init(|| Mutex::new(System::new()));
+    let mtx = SHARED_SYS.get_or_init(|| System::new().ok().map(Mutex::new)).as_ref()?;
     let mut guard = mtx.lock().unwrap_or_else(|e| e.into_inner());
-    f(&mut guard)
+    Some(f(&mut guard))
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -30,16 +30,6 @@ impl GpuProcessMemory {
     pub fn shared_mib(&self) -> u64 {
         self.shared_bytes / BYTES_PER_MIB
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct ProcessSnapshot {
-    pub pid: u32,
-    pub name: String,
-    pub cpu_pct: f32,
-    pub ram_mib: u64,
-    pub vram_dedicated_mib: u64,
-    pub vram_shared_mib: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,11 +58,6 @@ pub fn check_server_vram_spill(
     }
 }
 
-#[allow(dead_code)]
-pub fn total_measured_vram_used_mib() -> u64 {
-    total_measured_vram_used_mib_filtered(None)
-}
-
 pub fn total_measured_vram_used_mib_filtered(luid_filter: Option<&str>) -> u64 {
     if let Some(bytes) = query_gpu_adapter_dedicated_bytes(luid_filter) {
         return bytes / BYTES_PER_MIB;
@@ -82,52 +67,13 @@ pub fn total_measured_vram_used_mib_filtered(luid_filter: Option<&str>) -> u64 {
     total_bytes / BYTES_PER_MIB
 }
 
-#[allow(dead_code)]
-pub fn system_cpu_and_ram() -> (f32, u64, u64) {
-    with_shared_sys(|sys| {
-        sys.refresh_cpu_usage();
-        sys.refresh_memory();
-        (
-            sys.global_cpu_usage(),
-            sys.used_memory() / BYTES_PER_MIB,
-            sys.total_memory() / BYTES_PER_MIB,
-        )
-    })
-}
-
-pub fn snapshot_top_processes(limit: usize) -> Vec<ProcessSnapshot> {
-    let gpu_map = query_gpu_process_memory();
-
-    let mut list: Vec<ProcessSnapshot> = with_shared_sys(|sys| {
-        sys.refresh_processes(ProcessesToUpdate::All, true);
-        sys.processes()
-            .iter()
-            .map(|(pid, proc_info)| {
-                let p_u32 = pid.as_u32();
-                let gpu = gpu_map.get(&p_u32);
-                ProcessSnapshot {
-                    pid: p_u32,
-                    name: proc_info.name().to_string_lossy().into_owned(),
-                    cpu_pct: proc_info.cpu_usage(),
-                    ram_mib: proc_info.memory() / BYTES_PER_MIB,
-                    vram_dedicated_mib: gpu.map_or(0, GpuProcessMemory::dedicated_mib),
-                    vram_shared_mib: gpu.map_or(0, GpuProcessMemory::shared_mib),
-                }
-            })
-            .collect()
-    });
-
-    list.sort_by_key(|p| std::cmp::Reverse((p.vram_dedicated_mib, p.ram_mib, p.cpu_pct as u64)));
-    list.truncate(limit);
-    list
-}
-
 pub fn is_pid_alive(pid: u32) -> bool {
     with_shared_sys(|sys| {
         let target = Pid::from_u32(pid);
         sys.refresh_processes(ProcessesToUpdate::Some(&[target]), true);
         sys.process(target).is_some()
     })
+    .unwrap_or(false)
 }
 
 pub fn parse_pid_from_pdh_instance(instance_name: &str) -> Option<u32> {

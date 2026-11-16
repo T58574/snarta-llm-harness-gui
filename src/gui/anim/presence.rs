@@ -1,15 +1,15 @@
 use super::{DUR_BREATHING, DUR_PULSE};
-use crate::gui::theme::COLOR_PINK_PRIMARY;
+use crate::gui::theme::COLOR_ACCENT_ORANGE;
 use gpui::*;
 use gpui_component::h_flex;
 
-/// Renders a neon pink terminal cursor with synchronized breathing opacity for streaming states.
+/// Renders a brand-accent terminal cursor with synchronized breathing opacity for streaming states.
 pub fn render_breathing_cursor(id: &'static str) -> impl IntoElement {
     div()
         .w(px(7.0))
         .h(px(16.0))
         .rounded_sm()
-        .bg(COLOR_PINK_PRIMARY)
+        .bg(COLOR_ACCENT_ORANGE)
         .with_animation(
             id,
             Animation::new(DUR_PULSE)
@@ -41,7 +41,7 @@ pub fn apply_streaming_glow<E: Styled + IntoElement + 'static>(
                 .with_easing(bounce(ease_in_out)),
             |el, delta| {
                 let border_alpha = 0.4 + delta * 0.6;
-                el.border_color(COLOR_PINK_PRIMARY.opacity(border_alpha))
+                el.border_color(COLOR_ACCENT_ORANGE.opacity(border_alpha))
             },
         )
         .into_any_element()
@@ -57,7 +57,7 @@ pub fn render_thinking_dots(_id: &'static str) -> impl IntoElement {
                 .w(px(5.0))
                 .h(px(5.0))
                 .rounded_full()
-                .bg(COLOR_PINK_PRIMARY)
+                .bg(COLOR_ACCENT_ORANGE)
                 .with_animation(
                     "think-dot-1",
                     Animation::new(DUR_PULSE)
@@ -71,7 +71,7 @@ pub fn render_thinking_dots(_id: &'static str) -> impl IntoElement {
                 .w(px(5.0))
                 .h(px(5.0))
                 .rounded_full()
-                .bg(COLOR_PINK_PRIMARY)
+                .bg(COLOR_ACCENT_ORANGE)
                 .with_animation(
                     "think-dot-2",
                     Animation::new(DUR_PULSE)
@@ -89,7 +89,7 @@ pub fn render_thinking_dots(_id: &'static str) -> impl IntoElement {
                 .w(px(5.0))
                 .h(px(5.0))
                 .rounded_full()
-                .bg(COLOR_PINK_PRIMARY)
+                .bg(COLOR_ACCENT_ORANGE)
                 .with_animation(
                     "think-dot-3",
                     Animation::new(DUR_PULSE)

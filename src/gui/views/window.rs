@@ -4,7 +4,7 @@ use super::modals::{ModelsModal, PersonasModal, PrepareModal, RuntimeModal, Sett
 use super::sidebar::Sidebar;
 use super::topbar::TopBar;
 use crate::gui::state::{ActiveModal, AppState, ServerStatus};
-use crate::gui::theme::{COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_SIDEBAR, COLOR_TEXT_PRIMARY};
+use crate::gui::theme::{COLOR_BG_CANVAS, COLOR_BG_SIDEBAR, COLOR_TEXT_PRIMARY};
 use gpui::*;
 use gpui_component::{h_flex, v_flex};
 use std::time::Duration;
@@ -298,7 +298,7 @@ impl Render for MainWindow {
         v_flex()
             .track_focus(&focus_handle)
             .size_full()
-            .bg(COLOR_GRAPHITE_CANVAS)
+            .bg(COLOR_BG_CANVAS)
             .text_color(COLOR_TEXT_PRIMARY)
             .capture_key_down(move |event, _window, cx| {
                 let key = event.keystroke.key.as_str();
@@ -361,7 +361,7 @@ impl Render for MainWindow {
                     .id("modal-backdrop")
                     .absolute()
                     .inset_0()
-                    .bg(COLOR_GRAPHITE_SIDEBAR.opacity(0.82))
+                    .bg(COLOR_BG_SIDEBAR.opacity(0.84))
                     .flex()
                     .items_center()
                     .justify_center()

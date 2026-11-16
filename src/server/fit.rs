@@ -1,16 +1,23 @@
+#[cfg(test)]
 use crate::config::{ModelSettings, VramConfig};
+#[cfg(test)]
 use crate::gguf::GgufMeta;
 
+#[cfg(test)]
 pub const BYTES_PER_MIB: u64 = 1024 * 1024;
+#[cfg(test)]
 pub const MIN_CTX_TOKENS: u32 = 2048;
+#[cfg(test)]
 pub const CTX_STEP_TOKENS: u32 = 1024;
+#[cfg(test)]
 pub const BASE_COMPUTE_MIB: u64 = 220;
+#[cfg(test)]
 pub const RECURRENT_STATE_MIB_HYBRID: u64 = 128;
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub const CTX_PRESETS: &[u32] = &[8192, 16384, 32768, 65536, 131072, 262144];
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn format_ctx_k(ctx: u32) -> String {
     if ctx.is_multiple_of(1024) {
         format!("{}k", ctx / 1024)
@@ -19,7 +26,7 @@ pub fn format_ctx_k(ctx: u32) -> String {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn cycle_ctx_preset(cur: u32, forward: bool) -> u32 {
     let presets = CTX_PRESETS;
     if forward {
@@ -39,6 +46,7 @@ pub fn cycle_ctx_preset(cur: u32, forward: bool) -> u32 {
     }
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FitEstimate {
     pub free_vram_mib: u64,
@@ -53,28 +61,7 @@ pub struct FitEstimate {
     pub spill_mib: u64,
 }
 
-impl FitEstimate {
-    pub fn summary_line(&self, meta: &GgufMeta) -> String {
-        format!(
-            "- {} ({}, {}, {}/{}, MTP:{}) -> w={}M comp={}M KV@{}={}M tot={}M max={} fits={} spill={}M",
-            meta.file_name,
-            meta.quant_label,
-            meta.architecture,
-            meta.kv_layer_count,
-            meta.block_count,
-            meta.has_mtp(),
-            self.weights_mib,
-            self.compute_mib,
-            self.chosen_ctx,
-            self.kv_mib_at_chosen_ctx,
-            self.total_mib_at_chosen_ctx,
-            self.max_fitting_ctx,
-            self.fits_in_vram,
-            self.spill_mib,
-        )
-    }
-}
-
+#[cfg(test)]
 pub fn calculate_fit(
     meta: &GgufMeta,
     settings: &ModelSettings,
@@ -165,6 +152,7 @@ pub fn calculate_fit(
     }
 }
 
+#[cfg(test)]
 pub fn estimate_kv_mib(meta: &GgufMeta, kv_type: &str, ctx: u32) -> u64 {
     let bytes_per_elem_x2: u64 = match kv_type {
         "f16" => 4,  // 2.0 bytes * 2 (K and V)

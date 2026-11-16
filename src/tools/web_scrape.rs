@@ -7,8 +7,6 @@ use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 pub const FIRECRAWL_TIMEOUT_SECS: u64 = 30;
-#[allow(dead_code)]
-pub const DEFAULT_MONTHLY_CREDITS: u64 = 1000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlexandriaCapability {
@@ -69,11 +67,6 @@ impl AlexandriaTracker {
                 let _ = fs::write(p, j);
             }
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn get_spent(&self) -> u64 {
-        self.state.lock().map(|s| s.spent_credits).unwrap_or(0)
     }
 }
 
@@ -176,43 +169,4 @@ pub fn alexandria_scrape(
     };
 
     Ok((content, cost))
-}
-
-#[allow(dead_code)]
-pub fn scrape_url_markdown(
-    life_dir: &Path,
-    api_key: &str,
-    target_url: &str,
-) -> io::Result<(String, u64)> {
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(FIRECRAWL_TIMEOUT_SECS)))
-        .build()
-        .into();
-
-    let body = json!({
-        "url": target_url,
-        "formats": ["markdown"]
-    });
-
-    let mut resp = agent
-        .post("https://api.firecrawl.dev/v2/scrape")
-        .header("Authorization", &format!("Bearer {api_key}"))
-        .header("Content-Type", "application/json")
-        .send_json(&body)
-        .map_err(|e| io::Error::other(format!("Firecrawl scrape HTTP error: {e}")))?;
-
-    let val: Value = resp
-        .body_mut()
-        .read_json()
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("Parse error: {e}")))?;
-
-    let cost = val["cost"].as_u64().unwrap_or(1);
-    AlexandriaTracker::global().record_spent(life_dir, cost);
-
-    let md = val["data"]["markdown"]
-        .as_str()
-        .unwrap_or("(no content)")
-        .to_string();
-
-    Ok((md, cost))
 }

@@ -1,13 +1,14 @@
 use super::{SettingsModal, SettingsState};
 use crate::gguf::ReasoningMode;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_ELEVATED, COLOR_PINK_MUTED_BG, COLOR_PINK_PRIMARY,
-    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_ACCENT_GREEN, COLOR_BG_ELEVATED,
+    COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 
 impl SettingsModal {
     pub(super) fn render_models_tab(
@@ -96,9 +97,9 @@ impl SettingsModal {
             .gap_2()
             .p_3()
             .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .bg(COLOR_BG_ELEVATED)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .child(
                 h_flex()
                     .justify_between()
@@ -108,7 +109,7 @@ impl SettingsModal {
                             .text_size(rems(0.9))
                             .font_weight(FontWeight::BOLD)
                             .text_color(COLOR_TEXT_PRIMARY)
-                            .child("Автообнаруженные локальные модели"),
+                            .child("Локальные модели"),
                     )
                     .child(
                         h_flex()
@@ -119,7 +120,7 @@ impl SettingsModal {
                                 let defaults_copy = default_settings.clone();
                                 Some(
                                     Button::new("reset-model-override-btn")
-                                        .secondary()
+                                        .outline()
                                         .with_size(Size::Small)
                                         .label("Сбросить к общим")
                                         .on_click(move |_, window, cx| {
@@ -153,9 +154,9 @@ impl SettingsModal {
                             })
                             .child(
                                 Button::new("rescan-models-settings-btn")
-                                    .secondary()
+                                    .outline()
                                     .with_size(Size::Small)
-                                    .icon(IconName::RotateCw)
+                                    .icon(icons::refresh())
                                     .label("Обновить")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -173,7 +174,7 @@ impl SettingsModal {
                 div()
                     .text_size(rems(0.75))
                     .text_color(COLOR_TEXT_MUTED)
-                    .child("Выберите общие настройки по умолчанию или конкретную модель для индивидуальной настройки"),
+                    .child("Выберите общие настройки по умолчанию или конкретную модель"),
             )
             .child(
                 h_flex()
@@ -183,12 +184,7 @@ impl SettingsModal {
                         let is_def = selected_model.is_none();
                         let modal = self.clone();
                         let state_entity = state_entity.clone();
-                        Button::new("target-model-defaults")
-                            .with_variant(if is_def {
-                                gpui_component::button::ButtonVariant::Primary
-                            } else {
-                                gpui_component::button::ButtonVariant::Secondary
-                            })
+                        let btn = Button::new("target-model-defaults")
                             .with_size(Size::Small)
                             .label("По умолчанию для всех")
                             .on_click(move |_, window, cx| {
@@ -196,7 +192,8 @@ impl SettingsModal {
                                 let ms = state_entity.read(cx).cfg.model_defaults.clone();
                                 modal.load_model_settings_into_inputs(&ms, window, cx);
                                 state_entity.update(cx, |_, cx| cx.notify());
-                            })
+                            });
+                        if is_def { btn.primary() } else { btn.outline() }
                     })
                     .children(available_models.iter().map(|m| {
                         let fname = m.file_name.clone();
@@ -204,12 +201,7 @@ impl SettingsModal {
                         let label = fname.trim_end_matches(".gguf").to_string();
                         let modal = self.clone();
                         let state_entity = state_entity.clone();
-                        Button::new(format!("target-model-{}", fname))
-                            .with_variant(if is_sel {
-                                gpui_component::button::ButtonVariant::Primary
-                            } else {
-                                gpui_component::button::ButtonVariant::Secondary
-                            })
+                        let btn = Button::new(format!("target-model-{}", fname))
                             .with_size(Size::Small)
                             .label(label)
                             .on_click(move |_, window, cx| {
@@ -217,7 +209,8 @@ impl SettingsModal {
                                 let ms = state_entity.read(cx).cfg.model_settings(&fname);
                                 modal.load_model_settings_into_inputs(&ms, window, cx);
                                 state_entity.update(cx, |_, cx| cx.notify());
-                            })
+                            });
+                        if is_sel { btn.primary() } else { btn.outline() }
                     })),
             )
             .into_any_element()
@@ -247,18 +240,24 @@ impl SettingsModal {
             .gap_1p5()
             .p_3()
             .rounded_lg()
-            .bg(COLOR_PINK_MUTED_BG)
+            .bg(COLOR_ACCENT_BLUE_MUTED)
             .border_1()
-            .border_color(COLOR_PINK_PRIMARY.opacity(0.4))
+            .border_color(COLOR_ACCENT_BLUE.opacity(0.45))
             .child(
-                div()
-                    .text_size(rems(0.85))
-                    .font_weight(FontWeight::BOLD)
-                    .text_color(COLOR_TEXT_PRIMARY)
-                    .child(format!(
-                        "Обнаружено в файле: {} · {} · {:.2} ГБ · контекст модели {}k",
-                        meta.architecture, meta.quant_label, size_gib, ctx_k
-                    )),
+                h_flex()
+                    .items_center()
+                    .gap_2()
+                    .child(icons::cpu().size(px(14.0)).text_color(COLOR_ACCENT_BLUE))
+                    .child(
+                        div()
+                            .text_size(rems(0.85))
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(COLOR_TEXT_PRIMARY)
+                            .child(format!(
+                                "В файле: {} · {} · {:.2} ГБ · контекст {}k",
+                                meta.architecture, meta.quant_label, size_gib, ctx_k
+                            )),
+                    ),
             )
             .child(
                 h_flex()
@@ -268,7 +267,7 @@ impl SettingsModal {
                     .child(
                         div()
                             .text_color(if reasoning_accent {
-                                COLOR_PINK_PRIMARY
+                                COLOR_ACCENT_BLUE
                             } else {
                                 COLOR_TEXT_MUTED
                             })
@@ -277,32 +276,32 @@ impl SettingsModal {
                     .child(
                         div()
                             .text_color(if has_mtp {
-                                COLOR_PINK_PRIMARY
+                                COLOR_ACCENT_GREEN
                             } else {
                                 COLOR_TEXT_MUTED
                             })
                             .child(if has_mtp {
                                 "MTP: обнаружен"
                             } else {
-                                "MTP: не обнаружен"
+                                "MTP: нет"
                             }),
                     )
                     .child(
                         div()
                             .text_color(if has_mmproj {
-                                COLOR_PINK_PRIMARY
+                                COLOR_ACCENT_GREEN
                             } else {
                                 COLOR_TEXT_MUTED
                             })
                             .child(if has_mmproj {
                                 "Зрение mmproj: обнаружен"
                             } else {
-                                "Зрение mmproj: не обнаружен"
+                                "Зрение mmproj: нет"
                             }),
                     )
                     .children(auto_ncmoe.map(|nc| {
                         div()
-                            .text_color(COLOR_PINK_PRIMARY)
+                            .text_color(COLOR_ACCENT_BLUE)
                             .child(format!("Авто MoE: -ncmoe {nc}"))
                     })),
             )
@@ -338,9 +337,9 @@ impl SettingsModal {
             .gap_2()
             .p_3()
             .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .bg(COLOR_BG_ELEVATED)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .child(
                 div()
                     .text_size(rems(0.9))
@@ -363,18 +362,14 @@ impl SettingsModal {
                         let val_str = (*val).to_string();
                         let shared = self.shared.clone();
                         let state_entity = state_entity.clone();
-                        Button::new(format!("reasoning-opt-{}", val))
-                            .with_variant(if is_sel {
-                                gpui_component::button::ButtonVariant::Primary
-                            } else {
-                                gpui_component::button::ButtonVariant::Secondary
-                            })
+                        let btn = Button::new(format!("reasoning-opt-{}", val))
                             .with_size(Size::Small)
                             .label(*label)
                             .on_click(move |_, _, cx| {
                                 shared.borrow_mut().reasoning_effort = val_str.clone();
                                 state_entity.update(cx, |_, cx| cx.notify());
-                            })
+                            });
+                        if is_sel { btn.primary() } else { btn.outline() }
                     })),
             )
             .child(self.render_model_bool_toggle(
@@ -393,9 +388,9 @@ impl SettingsModal {
             .gap_2p5()
             .p_3()
             .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .bg(COLOR_BG_ELEVATED)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .child(
                 div()
                     .text_size(rems(0.9))
@@ -409,36 +404,48 @@ impl SettingsModal {
                     .text_color(COLOR_TEXT_MUTED)
                     .child("Применяются сразу со следующего сообщения без перезапуска сервера"),
             )
-            .child(Self::render_field(
-                "Температура",
-                "Случайность генерации, например 1.0",
-                &self.temperature_input,
-            ))
-            .child(Self::render_field(
-                "Top K",
-                "Ограничение выборки по K наиболее вероятным токенам",
-                &self.top_k_input,
-            ))
-            .child(Self::render_field(
-                "Top P",
-                "Ядерная выборка по суммарной вероятности, например 0.95",
-                &self.top_p_input,
-            ))
-            .child(Self::render_field(
-                "Min P",
-                "Нижний порог вероятности токена, например 0.0",
-                &self.min_p_input,
-            ))
-            .child(Self::render_field(
-                "Штраф за повторы",
-                "Для моделей с MTP рекомендуется 1.0",
-                &self.repeat_penalty_input,
-            ))
-            .child(Self::render_field(
-                "Максимум токенов ответа",
-                "Ограничение длины одного ответа модели",
-                &self.max_tokens_input,
-            ))
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Температура",
+                        "Случайность генерации, например 1.0",
+                        &self.temperature_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Top K",
+                        "Ограничение выборки по K лучшим токенам",
+                        &self.top_k_input,
+                    ))),
+            )
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Top P",
+                        "Ядерная выборка, например 0.95",
+                        &self.top_p_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Min P",
+                        "Нижний порог вероятности, например 0.0",
+                        &self.min_p_input,
+                    ))),
+            )
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Штраф за повторы",
+                        "Для моделей с MTP рекомендуется 1.0",
+                        &self.repeat_penalty_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Максимум токенов ответа",
+                        "Ограничение длины одного ответа модели",
+                        &self.max_tokens_input,
+                    ))),
+            )
             .into_any_element()
     }
 
@@ -457,9 +464,9 @@ impl SettingsModal {
             .gap_2p5()
             .p_3()
             .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .bg(COLOR_BG_ELEVATED)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .child(
                 div()
                     .text_size(rems(0.9))
@@ -471,28 +478,36 @@ impl SettingsModal {
                 div()
                     .text_size(rems(0.75))
                     .text_color(COLOR_TEXT_MUTED)
-                    .child("При изменении этих параметров запущенный сервер перезапускается автоматически"),
+                    .child("При изменении этих параметров сервер перезапускается автоматически"),
             )
-            .child(Self::render_field(
-                "Размер контекста",
-                "Окно контекста модели в токенах, например 32000 или 65536",
-                &self.ctx_input,
-            ))
-            .child(Self::render_field(
-                "Слои на GPU",
-                "Количество слоев модели для выгрузки на видеокарту",
-                &self.ngl_input,
-            ))
-            .child(Self::render_field(
-                "Размер пакета",
-                "Логический размер батча обработки промпта, например 2048",
-                &self.batch_input,
-            ))
-            .child(Self::render_field(
-                "Физический микробатч",
-                "Размер микробатча вычислений на GPU, например 512",
-                &self.ubatch_input,
-            ))
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Размер контекста",
+                        "Окно контекста в токенах, например 32000",
+                        &self.ctx_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Слои на GPU",
+                        "Количество слоев для выгрузки на видеокарту",
+                        &self.ngl_input,
+                    ))),
+            )
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Размер пакета",
+                        "Логический размер батча, например 2048",
+                        &self.batch_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Физический микробатч",
+                        "Микробатч вычислений на GPU, например 512",
+                        &self.ubatch_input,
+                    ))),
+            )
             .child(
                 v_flex()
                     .gap_1()
@@ -509,18 +524,14 @@ impl SettingsModal {
                             let kv_str = (*kv).to_string();
                             let shared = self.shared.clone();
                             let state_entity = state_entity.clone();
-                            Button::new(format!("kv-type-{}", kv))
-                                .with_variant(if is_sel {
-                                    gpui_component::button::ButtonVariant::Primary
-                                } else {
-                                    gpui_component::button::ButtonVariant::Secondary
-                                })
+                            let btn = Button::new(format!("kv-type-{}", kv))
                                 .with_size(Size::Small)
                                 .label(*kv)
                                 .on_click(move |_, _, cx| {
                                     shared.borrow_mut().kv_type = kv_str.clone();
                                     state_entity.update(cx, |_, cx| cx.notify());
-                                })
+                                });
+                            if is_sel { btn.primary() } else { btn.outline() }
                         })),
                     ),
             )

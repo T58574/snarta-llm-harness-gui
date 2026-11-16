@@ -1,20 +1,20 @@
 use crate::chat::session::{ChatTurn, TurnStep};
-use crate::gui::anim::ambient::render_ambient_emblem;
+use crate::gui::anim::avatar::render_hero_avatar;
 use crate::gui::anim::presence::{
     apply_streaming_glow, render_breathing_cursor, render_thinking_dots,
 };
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_ELEVATED,
-    COLOR_PINK_FOREGROUND_ACCENT, COLOR_PINK_PRIMARY, COLOR_PINK_SELECTION, COLOR_TEXT_MUTED,
-    COLOR_TEXT_ON_PINK, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_SELECTION, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
+    COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_ON_ACCENT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SUBTLE,
 };
 use crate::gui::views::tools::render_tool_traces;
 use crate::gui::views::topbar::format_compact_ctx;
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{ActiveTheme, IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 use gpui_kit::base::text::{TextView, TextViewMotion, TextViewStyle};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -36,6 +36,10 @@ impl ChatView {
         let streaming_steps = state.streaming_steps.clone();
         let used_ctx = state.used_ctx;
         let active_ctx = state.vram.active_ctx;
+        let persona_name = state.persona.name.clone();
+        let persona_gender = state.persona.gender;
+        let avatar_emotion = state.avatar_emotion;
+        let avatar_thought = state.avatar_thought.clone();
 
         v_flex()
             .id("chat-scroll")
@@ -43,7 +47,7 @@ impl ChatView {
             .flex_1()
             .h_full()
             .overflow_y_scroll()
-            .p_4()
+            .p_5()
             .gap_4()
             .children(turns.into_iter().enumerate().map(|(idx, turn)| {
                 let is_last = idx + 1 == turns_len && !is_generating;
@@ -59,37 +63,32 @@ impl ChatView {
                 )
             }))
             .child(if is_generating {
-                div().child(Self::render_streaming(
-                    &streaming_steps,
-                    used_ctx,
-                    active_ctx,
-                    state_entity,
-                    window,
-                    cx,
-                ))
-            } else if turns_empty {
-                div().child(
-                    v_flex()
-                        .items_center()
-                        .justify_center()
-                        .py_12()
-                        .gap_3()
-                        .child(render_ambient_emblem("ambient-chat-emblem"))
-                        .child(
-                            div()
-                                .text_size(rems(1.5))
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(cx.theme().primary)
-                                .child("Snarta"),
-                        )
-                        .child(
-                            div()
-                                .text_color(cx.theme().muted_foreground)
-                                .child("Напишите сообщение..."),
-                        ),
-                )
-            } else {
                 div()
+                    .child(Self::render_streaming(
+                        &streaming_steps,
+                        used_ctx,
+                        active_ctx,
+                        state_entity,
+                        window,
+                        cx,
+                    ))
+                    .into_any_element()
+            } else if turns_empty {
+                v_flex()
+                    .flex_1()
+                    .items_center()
+                    .justify_center()
+                    .py_12()
+                    .child(render_hero_avatar(
+                        &persona_name,
+                        persona_gender,
+                        avatar_emotion,
+                        avatar_thought.as_deref(),
+                        cx,
+                    ))
+                    .into_any_element()
+            } else {
+                div().into_any_element()
             })
     }
 
@@ -120,10 +119,10 @@ impl ChatView {
                 .child(
                     v_flex()
                         .max_w(rems(45.0))
-                        .p_3()
-                        .rounded_lg()
-                        .bg(COLOR_PINK_PRIMARY)
-                        .text_color(COLOR_TEXT_ON_PINK)
+                        .p_3p5()
+                        .rounded_xl()
+                        .bg(COLOR_ACCENT_ORANGE)
+                        .text_color(COLOR_TEXT_ON_ACCENT)
                         .gap_2()
                         .children(images.into_iter().map(|img_path| {
                             let path_buf = PathBuf::from(&img_path);
@@ -135,7 +134,7 @@ impl ChatView {
                             v_flex()
                                 .p_1p5()
                                 .rounded_md()
-                                .bg(COLOR_GRAPHITE_CANVAS.opacity(0.25))
+                                .bg(COLOR_BG_CANVAS.opacity(0.25))
                                 .gap_1()
                                 .child(
                                     img(path_buf)
@@ -164,7 +163,7 @@ impl ChatView {
                                     Button::new(format!("copy-user-{}", idx))
                                         .ghost()
                                         .with_size(Size::XSmall)
-                                        .icon(IconName::Copy)
+                                        .icon(icons::copy())
                                         .label("Копировать")
                                         .on_click({
                                             let copy_text = content;
@@ -235,10 +234,10 @@ impl ChatView {
                         .max_w(rems(52.0))
                         .w_full()
                         .p_4()
-                        .rounded_lg()
-                        .bg(COLOR_GRAPHITE_ELEVATED)
+                        .rounded_xl()
+                        .bg(COLOR_BG_ELEVATED)
                         .border_1()
-                        .border_color(COLOR_GRAPHITE_BORDER)
+                        .border_color(COLOR_BORDER)
                         .gap_3()
                         .children(steps.into_iter().enumerate().map(|(step_idx, step)| {
                             Self::render_step(
@@ -256,7 +255,7 @@ impl ChatView {
                                 .justify_between()
                                 .pt_2()
                                 .border_t_1()
-                                .border_color(COLOR_GRAPHITE_BORDER)
+                                .border_color(COLOR_BORDER)
                                 .text_size(rems(0.75))
                                 .text_color(COLOR_TEXT_MUTED)
                                 .child(footer_stats)
@@ -264,7 +263,7 @@ impl ChatView {
                                     Button::new(format!("copy-turn-{}", idx))
                                         .ghost()
                                         .with_size(Size::XSmall)
-                                        .icon(IconName::Copy)
+                                        .icon(icons::copy())
                                         .label("Копировать")
                                         .on_click({
                                             let copy_text = full_copy_text;
@@ -307,9 +306,9 @@ impl ChatView {
                         v_flex()
                             .p_2p5()
                             .rounded_md()
-                            .bg(COLOR_GRAPHITE_CANVAS)
+                            .bg(COLOR_BG_CANVAS)
                             .border_1()
-                            .border_color(COLOR_GRAPHITE_BORDER)
+                            .border_color(COLOR_BORDER)
                             .text_size(rems(0.85))
                             .text_color(COLOR_TEXT_MUTED)
                             .gap_1p5()
@@ -330,15 +329,18 @@ impl ChatView {
                                             .items_center()
                                             .gap_1p5()
                                             .child(
-                                                div()
-                                                    .text_size(rems(0.75))
-                                                    .text_color(COLOR_PINK_PRIMARY)
-                                                    .child(if is_collapsed { "▶" } else { "▼" }),
+                                                if is_collapsed {
+                                                    icons::chevron_right()
+                                                } else {
+                                                    icons::chevron_down()
+                                                }
+                                                .with_size(Size::XSmall)
+                                                .text_color(COLOR_ACCENT_ORANGE),
                                             )
                                             .child(
                                                 div()
-                                                    .font_weight(FontWeight::BOLD)
-                                                    .text_color(COLOR_PINK_PRIMARY)
+                                                    .font_weight(FontWeight::SEMIBOLD)
+                                                    .text_color(COLOR_ACCENT_ORANGE)
                                                     .child("Рассуждения"),
                                             )
                                             .children(is_streaming.then(|| {
@@ -420,10 +422,10 @@ impl ChatView {
             .max_w(rems(52.0))
             .w_full()
             .p_4()
-            .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .rounded_xl()
+            .bg(COLOR_BG_ELEVATED)
             .border_1()
-            .border_color(COLOR_PINK_PRIMARY)
+            .border_color(COLOR_ACCENT_ORANGE)
             .gap_3()
             .children(if non_empty_steps.is_empty() {
                 vec![
@@ -463,7 +465,7 @@ impl ChatView {
                     .justify_between()
                     .pt_2()
                     .border_t_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .text_size(rems(0.75))
                     .text_color(COLOR_TEXT_MUTED)
                     .child(
@@ -541,13 +543,13 @@ fn reasoning_markdown_style() -> TextViewStyle {
     TextViewStyle::default()
         .with_foreground(COLOR_TEXT_MUTED)
         .with_muted_foreground(COLOR_TEXT_MUTED)
-        .with_link(COLOR_PINK_PRIMARY)
-        .with_selection(COLOR_PINK_SELECTION)
-        .with_code_background(COLOR_GRAPHITE_ELEVATED)
+        .with_link(COLOR_ACCENT_ORANGE)
+        .with_selection(COLOR_ACCENT_ORANGE_SELECTION)
+        .with_code_background(COLOR_BG_ELEVATED)
         .with_border(hsla(0.0, 0.0, 0.0, 0.0))
         .with_inline_code(gpui::HighlightStyle {
-            background_color: Some(COLOR_GRAPHITE_ELEVATED),
-            color: Some(COLOR_PINK_FOREGROUND_ACCENT),
+            background_color: Some(COLOR_BG_ELEVATED),
+            color: Some(COLOR_TEXT_SUBTLE),
             ..Default::default()
         })
         .with_inline_code_style(inline_code_style)
@@ -572,14 +574,14 @@ fn assistant_markdown_style() -> TextViewStyle {
     TextViewStyle::default()
         .with_foreground(COLOR_TEXT_PRIMARY)
         .with_muted_foreground(COLOR_TEXT_MUTED)
-        .with_link(COLOR_PINK_PRIMARY)
-        .with_selection(COLOR_PINK_SELECTION)
-        .with_code_background(COLOR_GRAPHITE_CANVAS)
-        .with_border(COLOR_GRAPHITE_BORDER)
+        .with_link(COLOR_ACCENT_ORANGE)
+        .with_selection(COLOR_ACCENT_ORANGE_SELECTION)
+        .with_code_background(COLOR_BG_CANVAS)
+        .with_border(COLOR_BORDER)
         .with_code_block(code_block)
         .with_inline_code(gpui::HighlightStyle {
-            background_color: Some(COLOR_GRAPHITE_CANVAS),
-            color: Some(COLOR_PINK_FOREGROUND_ACCENT),
+            background_color: Some(COLOR_BG_CANVAS),
+            color: Some(COLOR_TEXT_SUBTLE),
             ..Default::default()
         })
         .with_inline_code_style(inline_code_style)
@@ -588,11 +590,11 @@ fn assistant_markdown_style() -> TextViewStyle {
 
 fn user_markdown_style() -> TextViewStyle {
     TextViewStyle::default()
-        .with_foreground(COLOR_TEXT_ON_PINK)
-        .with_muted_foreground(COLOR_TEXT_ON_PINK.opacity(0.85))
-        .with_link(COLOR_GRAPHITE_CANVAS)
-        .with_selection(COLOR_GRAPHITE_CANVAS.opacity(0.5))
-        .with_code_background(COLOR_GRAPHITE_CANVAS.opacity(0.3))
-        .with_border(COLOR_GRAPHITE_BORDER.opacity(0.3))
+        .with_foreground(COLOR_TEXT_ON_ACCENT)
+        .with_muted_foreground(COLOR_TEXT_ON_ACCENT.opacity(0.85))
+        .with_link(COLOR_BG_CANVAS)
+        .with_selection(COLOR_BG_CANVAS.opacity(0.5))
+        .with_code_background(COLOR_BG_CANVAS.opacity(0.25))
+        .with_border(COLOR_BORDER.opacity(0.3))
         .with_dark(true)
 }

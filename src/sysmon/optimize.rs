@@ -1,16 +1,14 @@
 use crate::config::PrepareConfig;
-use crate::server;
 use crate::sysmon::procs::{BYTES_PER_MIB, GpuProcessMemory, query_gpu_process_memory};
-use std::net::TcpStream;
-use std::thread;
-use std::time::Duration;
 #[cfg(windows)]
-use std::time::Instant;
+use std::thread;
+#[cfg(windows)]
+use std::time::{Duration, Instant};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 
-#[allow(dead_code)]
+#[cfg(windows)]
 pub const SOFT_CLOSE_TIMEOUT_MS: u64 = 350;
-pub use crate::sysmon::{run_cli_prepare, set_process_high_priority};
+pub use crate::sysmon::set_process_high_priority;
 
 pub const PROTECTED_SYSTEM_PROCS: &[&str] = &[
     "csrss.exe",
@@ -43,10 +41,8 @@ pub const PROTECTED_SYSTEM_PROCS: &[&str] = &[
 
 #[derive(Debug, Clone)]
 pub struct PrepareCandidate {
-    pub pid: u32,
     pub pids: Vec<u32>,
     pub name: String,
-    pub reason: &'static str,
     pub ram_mib: u64,
     pub vram_mib: u64,
 }
@@ -54,20 +50,6 @@ pub struct PrepareCandidate {
 #[derive(Debug, Clone)]
 pub struct PreparePlan {
     pub candidates: Vec<PrepareCandidate>,
-    pub est_ram_mib: u64,
-    pub est_vram_mib: u64,
-    #[allow(dead_code)]
-    pub port_busy_by_other: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct PrepareReport {
-    pub closed_count: usize,
-    pub dry_run: bool,
-    pub free_vram_before_mib: u64,
-    pub free_vram_after_mib: u64,
-    pub used_ram_before_mib: u64,
-    pub used_ram_after_mib: u64,
 }
 
 pub fn is_protected_process(
@@ -119,10 +101,12 @@ struct ProcessGroup {
 pub fn scan_prepare_candidates(
     cfg: &PrepareConfig,
     active_srv_pid: Option<u32>,
-    host: &str,
-    port: u16,
 ) -> PreparePlan {
-    let mut sys = System::new();
+    let Ok(mut sys) = System::new() else {
+        return PreparePlan {
+            candidates: Vec::new(),
+        };
+    };
     sys.refresh_processes(ProcessesToUpdate::All, true);
     let gpu_map = query_gpu_process_memory();
     let mut protected_pids = ancestor_pids(&sys, std::process::id());
@@ -162,35 +146,18 @@ pub fn scan_prepare_candidates(
 
     let mut candidates = Vec::new();
     for (low, grp) in groups {
-        let reason = if let Some(r) = grp.orphan {
-            Some(r)
-        } else if cfg
-            .kill_list
-            .iter()
-            .any(|k| k.trim().eq_ignore_ascii_case(&low))
-        {
-            Some("kill_list")
-        } else if grp.vram_mib >= 20 {
-            Some("держит VRAM")
-        } else if grp.ram_mib >= 400 {
-            Some("высокий RAM")
-        } else {
-            None
-        };
+        let include = grp.orphan.is_some()
+            || cfg
+                .kill_list
+                .iter()
+                .any(|k| k.trim().eq_ignore_ascii_case(&low))
+            || grp.vram_mib >= 20
+            || grp.ram_mib >= 400;
 
-        if let Some(reason) = reason
-            && !grp.pids.is_empty()
-        {
-            let name = if grp.pids.len() > 1 {
-                format!("{} ({} шт.)", grp.name, grp.pids.len())
-            } else {
-                grp.name
-            };
+        if include && !grp.pids.is_empty() {
             candidates.push(PrepareCandidate {
-                pid: grp.pids[0],
                 pids: grp.pids,
-                name,
-                reason,
+                name: grp.name,
                 ram_mib: grp.ram_mib,
                 vram_mib: grp.vram_mib,
             });
@@ -198,66 +165,8 @@ pub fn scan_prepare_candidates(
     }
 
     candidates.sort_by_key(|c| std::cmp::Reverse((c.vram_mib, c.ram_mib)));
-    let est_ram_mib = candidates.iter().map(|c| c.ram_mib).sum();
-    let est_vram_mib = candidates.iter().map(|c| c.vram_mib).sum();
-    let port_busy_by_other = active_srv_pid.is_none()
-        && TcpStream::connect_timeout(
-            &format!("{host}:{port}")
-                .parse()
-                .unwrap_or_else(|_| ([127, 0, 0, 1], port).into()),
-            Duration::from_millis(150),
-        )
-        .is_ok();
 
-    PreparePlan {
-        candidates,
-        est_ram_mib,
-        est_vram_mib,
-        port_busy_by_other,
-    }
-}
-
-pub fn execute_prepare_plan(targets: &[PrepareCandidate], dry_run: bool) -> PrepareReport {
-    let free_vram_before_mib = server::measure_free_vram_mib();
-    let used_ram_before_mib = system_used_ram_mib();
-    let mut closed_count = 0;
-
-    if dry_run {
-        closed_count = targets.len();
-    } else {
-        let all_pids: Vec<u32> = targets
-            .iter()
-            .flat_map(|t| t.pids.iter().copied())
-            .collect();
-        close_processes_fast(&all_pids);
-        for t in targets {
-            let any_alive = t
-                .pids
-                .iter()
-                .any(|&pid| crate::sysmon::procs::is_pid_alive(pid));
-            if !any_alive {
-                closed_count += 1;
-            }
-        }
-        if closed_count > 0 {
-            thread::sleep(Duration::from_millis(50));
-        }
-    }
-
-    PrepareReport {
-        closed_count,
-        dry_run,
-        free_vram_before_mib,
-        free_vram_after_mib: server::measure_free_vram_mib(),
-        used_ram_before_mib,
-        used_ram_after_mib: system_used_ram_mib(),
-    }
-}
-
-pub fn system_used_ram_mib() -> u64 {
-    let mut sys = System::new();
-    sys.refresh_memory();
-    sys.used_memory() / BYTES_PER_MIB
+    PreparePlan { candidates }
 }
 
 #[cfg(windows)]

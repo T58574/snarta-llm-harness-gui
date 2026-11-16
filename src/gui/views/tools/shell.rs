@@ -1,11 +1,12 @@
 use crate::chat::session::ToolTrace;
+use crate::gui::icons::icons;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_INPUT,
-    COLOR_PINK_MUTED_BG, COLOR_PINK_PRIMARY, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BG_INPUT, COLOR_BORDER,
+    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 use serde_json::Value;
 
 /// Renders a graphical console card for shell and command execution tools (`exec`, `shell_start`, `shell_output`, `shell_kill`).
@@ -25,7 +26,7 @@ pub fn render_shell_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
         .trim();
 
     let (badge_label, title_text) = match trace.name.as_str() {
-        "exec" => ("$ ТЕРМИНАЛ", cmd.to_string()),
+        "exec" => ("ТЕРМИНАЛ", cmd.to_string()),
         "shell_start" => ("ФОНОВАЯ КОМАНДА", cmd.to_string()),
         "shell_output" => ("ВЫВОД ФОНА", format!("Задача: {job_id}")),
         "shell_kill" => ("ОСТАНОВКА", format!("Задача: {job_id}")),
@@ -38,9 +39,9 @@ pub fn render_shell_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
         .w_full()
         .p_2p5()
         .rounded_lg()
-        .bg(COLOR_GRAPHITE_CANVAS)
+        .bg(COLOR_BG_CANVAS)
         .border_1()
-        .border_color(COLOR_GRAPHITE_BORDER)
+        .border_color(COLOR_BORDER)
         .gap_1p5()
         .child(
             h_flex()
@@ -51,14 +52,17 @@ pub fn render_shell_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                         .items_center()
                         .gap_2()
                         .child(
-                            div()
+                            h_flex()
+                                .items_center()
+                                .gap_1()
                                 .px_1p5()
                                 .py_0p5()
                                 .rounded_sm()
-                                .bg(COLOR_PINK_MUTED_BG)
+                                .bg(COLOR_ACCENT_ORANGE_MUTED)
                                 .text_size(rems(0.7))
                                 .font_weight(FontWeight::BOLD)
-                                .text_color(COLOR_PINK_PRIMARY)
+                                .text_color(COLOR_ACCENT_ORANGE)
+                                .child(icons::terminal().size(px(11.0)).text_color(COLOR_ACCENT_ORANGE))
                                 .child(badge_label),
                         )
                         .child(
@@ -73,7 +77,7 @@ pub fn render_shell_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                     Button::new(format!("copy-cmd-{}", copy_cmd.chars().take(8).collect::<String>()))
                         .ghost()
                         .with_size(Size::XSmall)
-                        .icon(IconName::Copy)
+                        .icon(icons::copy())
                         .on_click(move |_, _window, cx| {
                             cx.write_to_clipboard(ClipboardItem::new_string(copy_cmd.clone()));
                         })
@@ -85,9 +89,9 @@ pub fn render_shell_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                 .overflow_hidden()
                 .p_2()
                 .rounded_md()
-                .bg(COLOR_GRAPHITE_INPUT)
+                .bg(COLOR_BG_INPUT)
                 .border_1()
-                .border_color(COLOR_GRAPHITE_BORDER)
+                .border_color(COLOR_BORDER)
                 .text_size(rems(0.75))
                 .text_color(COLOR_TEXT_MUTED)
                 .child(trace.output.clone())

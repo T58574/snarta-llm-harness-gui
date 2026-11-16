@@ -1,12 +1,13 @@
 use crate::gui::anim::status::{apply_vram_pulse, render_server_online_dot};
+use crate::gui::icons::icons;
 use crate::gui::state::{ActiveModal, AppState, ServerStatus};
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_SIDEBAR, TOPBAR_HEIGHT,
-    vram_status_color,
+    COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BG_SIDEBAR, COLOR_BORDER, COLOR_TEXT_PRIMARY,
+    TOPBAR_HEIGHT, vram_status_color,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{ActiveTheme, IconName, Sizable, Size, h_flex};
+use gpui_component::{Sizable, Size, h_flex};
 
 pub struct TopBar;
 
@@ -38,17 +39,27 @@ impl TopBar {
             .justify_between()
             .px_3()
             .border_b_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
-            .bg(COLOR_GRAPHITE_SIDEBAR)
+            .border_color(COLOR_BORDER)
+            .bg(COLOR_BG_SIDEBAR)
             .child(
                 h_flex()
                     .items_center()
                     .gap_2()
+                    .min_w_0()
                     .child(
                         Button::new("toggle-sidebar")
-                            .secondary()
+                            .ghost()
                             .with_size(Size::Small)
-                            .label(if sidebar_open { "◀" } else { "▶" })
+                            .icon(if sidebar_open {
+                                icons::sidebar_close()
+                            } else {
+                                icons::sidebar_open()
+                            })
+                            .tooltip(if sidebar_open {
+                                "Скрыть боковую панель"
+                            } else {
+                                "Показать боковую панель"
+                            })
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -60,18 +71,33 @@ impl TopBar {
                             }),
                     )
                     .child(
-                        div()
-                            .px_1()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(cx.theme().primary)
-                            .child("Snarta"),
+                        h_flex()
+                            .items_center()
+                            .gap_1p5()
+                            .px_1p5()
+                            .child(
+                                div()
+                                    .w(px(8.0))
+                                    .h(px(8.0))
+                                    .rounded_full()
+                                    .bg(COLOR_ACCENT_ORANGE),
+                            )
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_size(rems(0.95))
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Snarta"),
+                            ),
                     )
                     .child(
                         Button::new("model-selector")
                             .secondary()
+                            .outline()
                             .with_size(Size::Small)
-                            .icon(IconName::Cpu)
+                            .icon(icons::cpu())
                             .label(model_name)
+                            .tooltip("Выбор и статус локальной модели GGUF")
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -85,9 +111,11 @@ impl TopBar {
                     .child(
                         Button::new("persona-selector")
                             .secondary()
+                            .outline()
                             .with_size(Size::Small)
-                            .icon(IconName::User)
+                            .icon(icons::user())
                             .label(persona_name)
+                            .tooltip("Выбор персоны собеседника")
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -103,11 +131,15 @@ impl TopBar {
                 h_flex()
                     .items_center()
                     .gap_2()
+                    .flex_shrink_0()
                     .child(
                         Button::new("prepare-modal-btn")
                             .secondary()
+                            .outline()
                             .with_size(Size::Small)
-                            .label("Очистка памяти")
+                            .icon(icons::broom())
+                            .label("Очистить память")
+                            .tooltip("Закрыть фоновые процессы, занимающие RAM и VRAM")
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -121,13 +153,15 @@ impl TopBar {
                     .child(match &state.server_status {
                         ServerStatus::Running { pid, port, .. } => Button::new("server-status-btn")
                             .secondary()
+                            .outline()
                             .with_size(Size::Small)
+                            .tooltip(format!("Нажмите, чтобы остановить сервер (PID {pid})"))
                             .child(
                                 h_flex()
                                     .items_center()
                                     .gap_1p5()
                                     .child(render_server_online_dot("server-online-dot"))
-                                    .child(format!("Сервер запущен · {port} · PID {pid}")),
+                                    .child(format!("Сервер · :{port}")),
                             )
                             .on_click({
                                 let state_entity = state_entity.clone();
@@ -140,8 +174,9 @@ impl TopBar {
                             })
                             .into_any_element(),
                         ServerStatus::Stopped => Button::new("server-status-btn")
-                            .secondary()
+                            .primary()
                             .with_size(Size::Small)
+                            .icon(icons::play())
                             .label("Запустить сервер")
                             .on_click({
                                 let state_entity = state_entity.clone();
@@ -162,15 +197,17 @@ impl TopBar {
                             .into_any_element(),
                         ServerStatus::Starting { .. } => Button::new("server-status-btn")
                             .secondary()
+                            .outline()
                             .with_size(Size::Small)
                             .loading(true)
-                            .label("Запуск сервера...")
+                            .label("Запуск...")
                             .into_any_element(),
                         ServerStatus::Error(err) => {
                             let err_msg = err.clone();
                             Button::new("server-status-btn")
                                 .danger()
                                 .with_size(Size::Small)
+                                .icon(icons::alert())
                                 .label("Ошибка сервера")
                                 .tooltip(err_msg.clone())
                                 .on_click({
@@ -190,14 +227,18 @@ impl TopBar {
                     .child({
                         let is_vram_danger = vram_spill > 0
                             || (vram_total > 0 && vram_used * 10 >= vram_total * 9);
-                        let vram_badge = div()
+                        let vram_badge = h_flex()
+                            .items_center()
+                            .gap_1p5()
                             .px_2p5()
                             .py_1()
                             .rounded_md()
-                            .bg(COLOR_GRAPHITE_CANVAS)
+                            .bg(COLOR_BG_CANVAS)
                             .border_1()
-                            .border_color(vram_color)
+                            .border_color(vram_color.opacity(0.65))
                             .text_size(rems(0.75))
+                            .text_color(COLOR_TEXT_PRIMARY)
+                            .child(icons::memory().with_size(Size::XSmall).text_color(vram_color))
                             .child(format_vram_display(vram_used, vram_total, vram_spill));
                         apply_vram_pulse(vram_badge, is_vram_danger, vram_color)
                     }),
@@ -226,11 +267,9 @@ pub fn format_vram_display(used_mib: u64, total_mib: u64, spill_mib: u64) -> Str
     let total_gb = (total_mib + 512) / 1024;
     let used_gb = used_mib as f64 / 1024.0;
     format!(
-        "VRAM: {:.1}/{} GB{}",
-        used_gb,
-        total_gb,
+        "VRAM {used_gb:.1}/{total_gb} GB{}",
         if spill_mib > 0 {
-            format!(" (перелив: {spill_mib} МБ)")
+            format!(" (+{spill_mib} МБ RAM)")
         } else {
             String::new()
         }
@@ -243,13 +282,12 @@ mod tests {
 
     #[core::prelude::v1::test]
     fn test_format_vram_display_rounding() {
-        // RX 7800 XT with 16368 MiB should round up to 16 GB, not truncate to 15 GB
-        assert_eq!(format_vram_display(0, 16368, 0), "VRAM: 0.0/16 GB");
-        assert_eq!(format_vram_display(1536, 16368, 0), "VRAM: 1.5/16 GB");
-        assert_eq!(format_vram_display(2048, 16384, 0), "VRAM: 2.0/16 GB");
+        assert_eq!(format_vram_display(0, 16368, 0), "VRAM 0.0/16 GB");
+        assert_eq!(format_vram_display(1536, 16368, 0), "VRAM 1.5/16 GB");
+        assert_eq!(format_vram_display(2048, 16384, 0), "VRAM 2.0/16 GB");
         assert_eq!(
             format_vram_display(16368, 16368, 512),
-            "VRAM: 16.0/16 GB (перелив: 512 МБ)"
+            "VRAM 16.0/16 GB (+512 МБ RAM)"
         );
     }
 

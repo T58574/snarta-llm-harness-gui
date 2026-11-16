@@ -307,29 +307,6 @@ pub fn format_launch_params(s: &ModelSettings, ctx: u32) -> String {
     parts.join(" ")
 }
 
-#[allow(dead_code)]
-pub const PARAMS: &[(&str, &str)] = &[
-    ("temperature", "запрос"),
-    ("top_k", "запрос"),
-    ("top_p", "запрос"),
-    ("min_p", "запрос"),
-    ("repeat_penalty", "запрос"),
-    ("max_tokens", "запрос"),
-    ("ctx", "запуск"),
-    ("ngl", "запуск"),
-    ("batch", "запуск"),
-    ("ubatch", "запуск"),
-    ("kv_type", "запуск: f16/q8_0/q4_0"),
-    ("flash_attn", "запуск: bool"),
-    ("mlock", "запуск: bool"),
-    ("mmap", "запуск: bool"),
-    ("prompt_cache", "запуск: bool"),
-    ("reasoning_preserve", "запуск: bool"),
-    ("mmproj", "запуск: проектор"),
-    ("mtp", "запуск: mtp драфт"),
-    ("extra_args", "запуск"),
-];
-
 pub fn launch_params_changed(a: &ModelSettings, b: &ModelSettings) -> bool {
     a.ctx != b.ctx
         || a.ngl != b.ngl
@@ -345,85 +322,6 @@ pub fn launch_params_changed(a: &ModelSettings, b: &ModelSettings) -> bool {
         || a.mmproj != b.mmproj
         || a.mtp != b.mtp
         || a.extra_args != b.extra_args
-}
-
-#[allow(dead_code)]
-pub fn param_val_str(s: &ModelSettings, idx: usize) -> String {
-    match idx {
-        0 => s.temperature.to_string(),
-        1 => s.top_k.to_string(),
-        2 => s.top_p.to_string(),
-        3 => s.min_p.to_string(),
-        4 => s.repeat_penalty.to_string(),
-        5 => s.max_tokens.to_string(),
-        6 => s.ctx.to_string(),
-        7 => s.ngl.to_string(),
-        8 => s.batch.to_string(),
-        9 => s.ubatch.to_string(),
-        10 => s.kv_type.clone(),
-        11 => s.flash_attn.to_string(),
-        12 => s.mlock.to_string(),
-        13 => s.mmap.to_string(),
-        14 => s.prompt_cache.to_string(),
-        15 => s.reasoning_preserve.to_string(),
-        16 => s.mmproj.clone().unwrap_or_else(|| "none".to_string()),
-        17 => s.mtp.clone().unwrap_or_else(|| "auto".to_string()),
-        _ => s.extra_args.clone(),
-    }
-}
-
-#[allow(dead_code)]
-pub fn toggle_or_cycle_param(s: &mut ModelSettings, idx: usize) -> bool {
-    match idx {
-        6 => s.ctx = crate::server::fit::cycle_ctx_preset(s.ctx, true),
-        10 => {
-            s.kv_type = match s.kv_type.as_str() {
-                "f16" => "q8_0",
-                "q8_0" => "q4_0",
-                _ => "f16",
-            }
-            .into()
-        }
-        11 => s.flash_attn = !s.flash_attn,
-        12 => s.mlock = !s.mlock,
-        13 => s.mmap = !s.mmap,
-        14 => s.prompt_cache = !s.prompt_cache,
-        15 => s.reasoning_preserve = !s.reasoning_preserve,
-        _ => return false,
-    }
-    true
-}
-
-#[allow(dead_code)]
-pub fn apply_param_str(s: &mut ModelSettings, idx: usize, v: &str) {
-    match idx {
-        0 => s.temperature = v.parse().unwrap_or(s.temperature),
-        1 => s.top_k = v.parse().unwrap_or(s.top_k),
-        2 => s.top_p = v.parse().unwrap_or(s.top_p),
-        3 => s.min_p = v.parse().unwrap_or(s.min_p),
-        4 => s.repeat_penalty = v.parse().unwrap_or(s.repeat_penalty),
-        5 => s.max_tokens = v.parse().unwrap_or(s.max_tokens),
-        6 => s.ctx = v.parse().unwrap_or(s.ctx),
-        7 => s.ngl = v.parse().unwrap_or(s.ngl),
-        8 => s.batch = v.parse().unwrap_or(s.batch),
-        9 => s.ubatch = v.parse().unwrap_or(s.ubatch),
-        16 => {
-            s.mmproj = if v.is_empty() || v == "none" {
-                None
-            } else {
-                Some(v.to_string())
-            }
-        }
-        17 => {
-            s.mtp = if v.is_empty() || v == "none" {
-                None
-            } else {
-                Some(v.to_string())
-            }
-        }
-        18 => s.extra_args = v.to_string(),
-        _ => {}
-    }
 }
 
 #[cfg(test)]

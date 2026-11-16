@@ -118,23 +118,6 @@ pub fn load_image_file(path: &Path) -> io::Result<ImageAttachment> {
     })
 }
 
-#[allow(dead_code)]
-pub fn scan_mmproj_files(models_dir: &Path) -> io::Result<Vec<String>> {
-    let Ok(entries) = fs::read_dir(models_dir) else {
-        return Ok(Vec::new());
-    };
-    let mut list: Vec<String> = entries
-        .flatten()
-        .filter_map(|e| {
-            let n = e.file_name().into_string().ok()?;
-            let l = n.to_ascii_lowercase();
-            (l.contains("mmproj") && l.ends_with(".gguf")).then_some(n)
-        })
-        .collect();
-    list.sort();
-    Ok(list)
-}
-
 #[cfg_attr(not(windows), allow(dead_code))]
 pub fn dib_to_bmp(dib: &[u8]) -> io::Result<Vec<u8>> {
     if dib.len() < 40 {
@@ -476,122 +459,9 @@ pub fn read_clipboard_image(attachments_dir: &Path) -> io::Result<Option<ImageAt
     }
 }
 
-#[allow(dead_code)]
-#[cfg(windows)]
-pub fn read_clipboard_text() -> io::Result<Option<String>> {
-    use std::ptr;
-    use windows_sys::Win32::System::DataExchange::{
-        CloseClipboard, GetClipboardData, IsClipboardFormatAvailable, OpenClipboard,
-    };
-    use windows_sys::Win32::System::Memory::{GlobalLock, GlobalSize, GlobalUnlock};
-
-    const CF_UNICODETEXT: u32 = 13;
-    let mut opened = false;
-    for _ in 0..5 {
-        if unsafe { OpenClipboard(ptr::null_mut()) } != 0 {
-            opened = true;
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(15));
-    }
-    if !opened {
-        return Ok(None);
-    }
-    unsafe {
-        if IsClipboardFormatAvailable(CF_UNICODETEXT) == 0 {
-            CloseClipboard();
-            return Ok(None);
-        }
-        let handle = GetClipboardData(CF_UNICODETEXT);
-        if handle.is_null() {
-            CloseClipboard();
-            return Ok(None);
-        }
-        let ptr = GlobalLock(handle);
-        if ptr.is_null() {
-            CloseClipboard();
-            return Ok(None);
-        }
-        let size = GlobalSize(handle) / 2;
-        let slice = std::slice::from_raw_parts(ptr as *const u16, size);
-        let len = slice.iter().position(|&c| c == 0).unwrap_or(size);
-        let text = String::from_utf16_lossy(&slice[..len]);
-        GlobalUnlock(handle);
-        CloseClipboard();
-        if text.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(text))
-        }
-    }
-}
-
-#[allow(dead_code)]
-#[cfg(windows)]
-pub fn write_clipboard_text(text: &str) -> io::Result<()> {
-    use std::ptr;
-    use windows_sys::Win32::Foundation::GlobalFree;
-    use windows_sys::Win32::System::DataExchange::{
-        CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData,
-    };
-    use windows_sys::Win32::System::Memory::{
-        GMEM_MOVEABLE, GlobalAlloc, GlobalLock, GlobalUnlock,
-    };
-
-    const CF_UNICODETEXT: u32 = 13;
-    let mut opened = false;
-    for _ in 0..5 {
-        if unsafe { OpenClipboard(ptr::null_mut()) } != 0 {
-            opened = true;
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(15));
-    }
-    if !opened {
-        return Err(io::Error::other("Failed to open clipboard"));
-    }
-    let utf16: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
-    let bytes_len = utf16.len() * 2;
-    unsafe {
-        EmptyClipboard();
-        let h_mem = GlobalAlloc(GMEM_MOVEABLE, bytes_len);
-        if h_mem.is_null() {
-            CloseClipboard();
-            return Err(io::Error::other("Failed to allocate clipboard memory"));
-        }
-        let p_mem = GlobalLock(h_mem);
-        if p_mem.is_null() {
-            GlobalFree(h_mem);
-            CloseClipboard();
-            return Err(io::Error::other("Failed to lock clipboard memory"));
-        }
-        ptr::copy_nonoverlapping(utf16.as_ptr() as *const u8, p_mem as *mut u8, bytes_len);
-        GlobalUnlock(h_mem);
-        if SetClipboardData(CF_UNICODETEXT, h_mem).is_null() {
-            GlobalFree(h_mem);
-            CloseClipboard();
-            return Err(io::Error::other("Failed to set clipboard data"));
-        }
-        CloseClipboard();
-    }
-    Ok(())
-}
-
 #[cfg(not(windows))]
 pub fn read_clipboard_image(_attachments_dir: &Path) -> io::Result<Option<ImageAttachment>> {
     Ok(None)
-}
-
-#[allow(dead_code)]
-#[cfg(not(windows))]
-pub fn read_clipboard_text() -> io::Result<Option<String>> {
-    Ok(None)
-}
-
-#[allow(dead_code)]
-#[cfg(not(windows))]
-pub fn write_clipboard_text(_text: &str) -> io::Result<()> {
-    Ok(())
 }
 
 #[cfg(test)]

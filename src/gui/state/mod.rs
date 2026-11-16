@@ -33,6 +33,7 @@ use crate::chat::session::{ToolTrace, TurnStep};
 use crate::chat::workspace::Workspace;
 use crate::config::{Config, ModelSettings};
 use crate::gpu;
+use crate::gui::anim::avatar::AvatarEmotion;
 use crate::log::Logger;
 use crate::paths::AppPaths;
 use crate::server;
@@ -57,15 +58,11 @@ pub struct VramTelemetry {
     pub spill_mib: u64,
     pub tps: f64,
     pub active_ctx: u32,
-    #[allow(dead_code)]
-    pub fits_in_vram: bool,
 }
 
 pub struct AppState {
     pub paths: AppPaths,
     pub cfg: Config,
-    #[allow(dead_code)]
-    pub logger: Logger,
     pub workspace: Workspace,
     pub vram: VramTelemetry,
     pub active_stream: Option<ActiveAgentStream>,
@@ -79,8 +76,6 @@ pub struct AppState {
     pub sidebar_open: bool,
     pub settings_open: bool,
     pub active_modal: Option<ActiveModal>,
-    #[allow(dead_code)]
-    pub fit_chosen_ctx: Option<u32>,
     pub prepare_candidates: Vec<(crate::sysmon::optimize::PrepareCandidate, bool)>,
     pub status_notice: Option<String>,
     pub server: ServerController,
@@ -89,6 +84,9 @@ pub struct AppState {
     pub draft_tokens: Option<usize>,
     pub last_gen_tokens: Option<u32>,
     pub last_config_mtime: Option<std::time::SystemTime>,
+    pub avatar_emotion: AvatarEmotion,
+    pub avatar_thought: Option<String>,
+    pub has_explicit_emotion: bool,
 }
 
 impl Deref for AppState {
@@ -124,7 +122,6 @@ impl AppState {
         let mut state = Self {
             paths,
             cfg,
-            logger,
             workspace,
             vram: VramTelemetry {
                 used_mib: 0,
@@ -132,7 +129,6 @@ impl AppState {
                 spill_mib: 0,
                 tps: 0.0,
                 active_ctx: initial_ctx,
-                fits_in_vram: true,
             },
             active_stream: None,
             streaming_content: String::new(),
@@ -145,7 +141,6 @@ impl AppState {
             sidebar_open: true,
             settings_open: false,
             active_modal: None,
-            fit_chosen_ctx: None,
             prepare_candidates: Vec::new(),
             status_notice: None,
             server,
@@ -154,6 +149,9 @@ impl AppState {
             draft_tokens: Some(0),
             last_gen_tokens: None,
             last_config_mtime,
+            avatar_emotion: AvatarEmotion::Neutral,
+            avatar_thought: None,
+            has_explicit_emotion: false,
         };
         state.refresh_vram();
         state.recalculate_used_ctx();
@@ -215,11 +213,6 @@ impl AppState {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn reload_sessions(&mut self) {
-        self.workspace.reload_sessions(&self.paths);
-    }
-
     pub fn create_new_session(&mut self) {
         // Cancel any in-flight generation before switching sessions so that
         // streaming state does not leak into the new session.
@@ -234,6 +227,9 @@ impl AppState {
         {
             self.collapsed_reasoning.clear();
             self.needs_scroll_to_bottom = true;
+            self.avatar_emotion = AvatarEmotion::Neutral;
+            self.avatar_thought = None;
+            self.has_explicit_emotion = false;
         }
     }
 
@@ -249,6 +245,9 @@ impl AppState {
         {
             self.collapsed_reasoning.clear();
             self.needs_scroll_to_bottom = true;
+            self.avatar_emotion = AvatarEmotion::Neutral;
+            self.avatar_thought = None;
+            self.has_explicit_emotion = false;
         }
     }
 
@@ -276,6 +275,9 @@ impl AppState {
         let active_ctx = self.active_server_ctx();
         self.workspace
             .switch_persona(&self.paths, &mut self.cfg, persona_name, active_ctx);
+        self.avatar_emotion = AvatarEmotion::Neutral;
+        self.avatar_thought = None;
+        self.has_explicit_emotion = false;
     }
 
     pub fn switch_model(&mut self, model_file: &str) {
@@ -298,8 +300,6 @@ impl AppState {
         let plan = crate::sysmon::optimize::scan_prepare_candidates(
             &self.cfg.prepare,
             srv_pid,
-            &self.cfg.server.host,
-            self.cfg.server.port,
         );
         self.prepare_candidates = plan.candidates.into_iter().map(|h| (h, true)).collect();
     }

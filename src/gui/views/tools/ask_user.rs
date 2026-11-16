@@ -1,11 +1,12 @@
 use crate::chat::session::ToolTrace;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_CANVAS, COLOR_PINK_MUTED_BG, COLOR_PINK_PRIMARY, COLOR_TEXT_MUTED,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_BG_CANVAS, COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
-use gpui_component::button::{Button, ButtonVariants as _};
+use gpui_component::button::Button;
 use gpui_component::{Sizable, Size, h_flex, v_flex};
 use serde_json::Value;
 
@@ -46,9 +47,9 @@ pub fn render_ask_user(
         .w_full()
         .p_3()
         .rounded_lg()
-        .bg(COLOR_GRAPHITE_CANVAS)
+        .bg(COLOR_BG_CANVAS)
         .border_1()
-        .border_color(COLOR_PINK_PRIMARY)
+        .border_color(COLOR_ACCENT_BLUE.opacity(0.6))
         .gap_2();
 
     // 1. Header: question badge
@@ -56,14 +57,17 @@ pub fn render_ask_user(
         .items_center()
         .gap_2()
         .child(
-            div()
+            h_flex()
+                .items_center()
+                .gap_1()
                 .px_2()
                 .py_0p5()
                 .rounded_sm()
-                .bg(COLOR_PINK_MUTED_BG)
+                .bg(COLOR_ACCENT_BLUE_MUTED)
                 .text_size(rems(0.75))
                 .font_weight(FontWeight::BOLD)
-                .text_color(COLOR_PINK_PRIMARY)
+                .text_color(COLOR_ACCENT_BLUE)
+                .child(icons::list_checks().size(px(12.0)).text_color(COLOR_ACCENT_BLUE))
                 .child("Вопрос к пользователю"),
         )
         .child(if is_streaming {
@@ -121,7 +125,7 @@ pub fn render_ask_user(
                     .gap_2()
                     .child(
                         Button::new(format!("ask-user-opt-{idx}-{}", opt.chars().take(8).collect::<String>()))
-                            .secondary()
+                            .outline()
                             .with_size(Size::Small)
                             .label(format!("{}. {}", idx + 1, opt))
                             .on_click(move |_, _window, cx| {

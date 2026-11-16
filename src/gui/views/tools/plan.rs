@@ -1,7 +1,9 @@
 use crate::chat::session::ToolTrace;
+use crate::gui::icons::icons;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_ELEVATED,
-    COLOR_PINK_MUTED_BG, COLOR_PINK_PRIMARY, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_ACCENT_GREEN, COLOR_ACCENT_GREEN_MUTED,
+    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
+    COLOR_BORDER, COLOR_DANGER, COLOR_DANGER_MUTED, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
 use gpui_component::{h_flex, v_flex};
@@ -27,9 +29,9 @@ pub fn render_plan_mode(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
         .w_full()
         .p_3()
         .rounded_lg()
-        .bg(COLOR_GRAPHITE_CANVAS)
+        .bg(COLOR_BG_CANVAS)
         .border_1()
-        .border_color(if is_enter { COLOR_PINK_PRIMARY } else { COLOR_GRAPHITE_BORDER })
+        .border_color(if is_enter { COLOR_ACCENT_BLUE } else { COLOR_BORDER })
         .gap_2()
         .child(
             h_flex()
@@ -40,10 +42,18 @@ pub fn render_plan_mode(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                         .px_2()
                         .py_0p5()
                         .rounded_sm()
-                        .bg(COLOR_PINK_MUTED_BG)
+                        .bg(if is_enter {
+                            COLOR_ACCENT_BLUE_MUTED
+                        } else {
+                            COLOR_ACCENT_GREEN_MUTED
+                        })
                         .text_size(rems(0.75))
                         .font_weight(FontWeight::BOLD)
-                        .text_color(COLOR_PINK_PRIMARY)
+                        .text_color(if is_enter {
+                            COLOR_ACCENT_BLUE
+                        } else {
+                            COLOR_ACCENT_GREEN
+                        })
                         .child(if is_enter {
                             "Режим планирования"
                         } else {
@@ -88,9 +98,9 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                 .w_full()
                 .p_2p5()
                 .rounded_lg()
-                .bg(COLOR_GRAPHITE_CANVAS)
+                .bg(COLOR_BG_CANVAS)
                 .border_1()
-                .border_color(COLOR_GRAPHITE_BORDER)
+                .border_color(COLOR_BORDER)
                 .gap_1p5()
                 .child(
                     h_flex()
@@ -105,10 +115,10 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                                         .px_1p5()
                                         .py_0p5()
                                         .rounded_sm()
-                                        .bg(COLOR_PINK_MUTED_BG)
+                                        .bg(COLOR_ACCENT_ORANGE_MUTED)
                                         .text_size(rems(0.7))
                                         .font_weight(FontWeight::BOLD)
-                                        .text_color(COLOR_PINK_PRIMARY)
+                                        .text_color(COLOR_ACCENT_ORANGE)
                                         .child("+ Новая задача"),
                                 )
                                 .child(
@@ -124,7 +134,7 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                                 .px_1p5()
                                 .py_0p5()
                                 .rounded_sm()
-                                .bg(COLOR_GRAPHITE_ELEVATED)
+                                .bg(COLOR_BG_ELEVATED)
                                 .text_size(rems(0.7))
                                 .text_color(COLOR_TEXT_MUTED)
                                 .child("ожидает"),
@@ -156,19 +166,19 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
             };
 
             let (badge_bg, badge_fg) = match status.as_str() {
-                "completed" | "done" => (hsla(140.0 / 360.0, 0.40, 0.15, 1.0), hsla(140.0 / 360.0, 0.85, 0.65, 1.0)),
-                "in_progress" | "progress" => (COLOR_PINK_MUTED_BG, COLOR_PINK_PRIMARY),
-                "blocked" => (hsla(0.0, 0.40, 0.15, 1.0), hsla(0.0, 0.85, 0.65, 1.0)),
-                _ => (COLOR_GRAPHITE_ELEVATED, COLOR_TEXT_MUTED),
+                "completed" | "done" => (COLOR_ACCENT_GREEN_MUTED, COLOR_ACCENT_GREEN),
+                "in_progress" | "progress" => (COLOR_ACCENT_ORANGE_MUTED, COLOR_ACCENT_ORANGE),
+                "blocked" => (COLOR_DANGER_MUTED, COLOR_DANGER),
+                _ => (COLOR_BG_ELEVATED, COLOR_TEXT_MUTED),
             };
 
             h_flex()
                 .w_full()
                 .p_2()
                 .rounded_md()
-                .bg(COLOR_GRAPHITE_CANVAS)
+                .bg(COLOR_BG_CANVAS)
                 .border_1()
-                .border_color(COLOR_GRAPHITE_BORDER)
+                .border_color(COLOR_BORDER)
                 .items_center()
                 .justify_between()
                 .child(
@@ -209,9 +219,9 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                 .w_full()
                 .p_2p5()
                 .rounded_lg()
-                .bg(COLOR_GRAPHITE_CANVAS)
+                .bg(COLOR_BG_CANVAS)
                 .border_1()
-                .border_color(COLOR_GRAPHITE_BORDER)
+                .border_color(COLOR_BORDER)
                 .gap_1p5()
                 .child(
                     h_flex()
@@ -222,10 +232,10 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                                 .px_1p5()
                                 .py_0p5()
                                 .rounded_sm()
-                                .bg(COLOR_PINK_MUTED_BG)
+                                .bg(COLOR_ACCENT_BLUE_MUTED)
                                 .text_size(rems(0.7))
                                 .font_weight(FontWeight::BOLD)
-                                .text_color(COLOR_PINK_PRIMARY)
+                                .text_color(COLOR_ACCENT_BLUE)
                                 .child("Список задач агента"),
                         ),
                 )
@@ -233,14 +243,14 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                     v_flex()
                         .gap_1()
                         .children(lines.into_iter().filter(|l| !l.starts_with("###")).map(|line_str| {
-                            let (badge_char, color) = if line_str.starts_with("[x]") {
-                                ("[✓]", hsla(140.0 / 360.0, 0.85, 0.65, 1.0))
+                            let (badge_icon, color) = if line_str.starts_with("[x]") {
+                                (icons::check().size(px(12.0)), COLOR_ACCENT_GREEN)
                             } else if line_str.starts_with("[>]") {
-                                ("[▶]", COLOR_PINK_PRIMARY)
+                                (icons::play().size(px(12.0)), COLOR_ACCENT_ORANGE)
                             } else if line_str.starts_with("[!]") {
-                                ("[✕]", hsla(0.0, 0.85, 0.65, 1.0))
+                                (icons::close().size(px(12.0)), COLOR_DANGER)
                             } else {
-                                ("[ ]", COLOR_TEXT_MUTED)
+                                (icons::chevron_right().size(px(12.0)), COLOR_TEXT_MUTED)
                             };
 
                             let clean_label = line_str
@@ -252,12 +262,7 @@ pub fn render_task_card(trace: &ToolTrace, _is_streaming: bool) -> AnyElement {
                                 .items_center()
                                 .gap_2()
                                 .text_size(rems(0.78))
-                                .child(
-                                    div()
-                                        .font_weight(FontWeight::BOLD)
-                                        .text_color(color)
-                                        .child(badge_char),
-                                )
+                                .child(badge_icon.text_color(color))
                                 .child(
                                     div()
                                         .text_color(COLOR_TEXT_PRIMARY)

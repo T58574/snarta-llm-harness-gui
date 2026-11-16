@@ -21,6 +21,7 @@ use std::path::Path;
 /// Authoritative JSON schema definitions for all built-in tools.
 pub fn tool_definitions_json() -> Value {
     const JSON_STR: &str = r#"[
+      {"type":"function","function":{"name":"set_emotion","description":"Express your live ASCII face emotion and optional micro-thought on the user's HUD (e.g. when happy, curious, focused, skeptical, playful, surprised, proud, or warm).","parameters":{"type":"object","properties":{"emotion":{"type":"string","enum":["neutral","happy","thinking","focused","curious","surprised","skeptical","playful","proud","warm","alert"]},"thought":{"type":"string","description":"Short 2-5 word mood note or reaction shown under your face"}},"required":["emotion"]}}},
       {"type":"function","function":{"name":"remember","description":"Record an important fact about the user in long-term memory (life/memory.md).","parameters":{"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}}},
       {"type":"function","function":{"name":"write_note","description":"Create or append to a note in life/notes/.","parameters":{"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"},"append":{"type":"boolean"}},"required":["path","content"]}}},
       {"type":"function","function":{"name":"write_file","description":"Create or overwrite a file on the user's local filesystem at the given path (relative to cwd or absolute path). You run natively on the host PC with full permissions.","parameters":{"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"},"append":{"type":"boolean"}},"required":["path","content"]}}},
@@ -106,6 +107,15 @@ pub fn format_tool_summary(name: &str, args_json: &str) -> String {
             "memory: {}",
             truncate_str(args["text"].as_str().unwrap_or(""), 60)
         ),
+        "set_emotion" => {
+            let em = args["emotion"].as_str().unwrap_or("neutral");
+            let th = args["thought"].as_str().unwrap_or("");
+            if th.is_empty() {
+                format!("mood: {em}")
+            } else {
+                format!("mood: {em} ({})", truncate_str(th, 40))
+            }
+        }
         other if p.is_empty() => format!("{other}({})", truncate_str(args_json.trim(), 56)),
         other => format!("{other}: {p}"),
     }
@@ -133,6 +143,7 @@ pub fn execute_tool_call(
         mem_added: None,
         new_cwd: None,
         viewed_image: None,
+        emotion_changed: None,
     };
     outcome.output = match run_tool(cwd, life_dir, call, max_read_bytes, &mut outcome) {
         Ok(s) => s,
@@ -248,6 +259,24 @@ fn run_tool(
     }
 
     match call.name.as_str() {
+        "set_emotion" => {
+            let emotion = args["emotion"]
+                .as_str()
+                .unwrap_or("neutral")
+                .trim()
+                .to_ascii_lowercase();
+            let thought = args["thought"]
+                .as_str()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string);
+            out_meta.emotion_changed = Some((emotion.clone(), thought.clone()));
+            if let Some(t) = thought {
+                Ok(format!("Face emotion set to '{emotion}' ({t})"))
+            } else {
+                Ok(format!("Face emotion set to '{emotion}'"))
+            }
+        }
         "remember" => {
             let raw = args["text"].as_str().unwrap_or("");
             let fact = remember_fact(life_dir, raw)?;

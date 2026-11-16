@@ -1,19 +1,11 @@
-use crate::chat::client;
 use crate::chat::session::Session;
 use crate::persona::Persona;
 use serde_json::{Value, json};
-use std::{fs, io, path::Path};
-
-#[allow(dead_code)]
-pub const KEEP_RECENT_TURNS_ON_COMPACT: usize = 2;
+use std::{fs, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct BuiltSystemPrompt {
     pub full_text: String,
-    #[allow(dead_code)]
-    pub memory_tokens: u32,
-    #[allow(dead_code)]
-    pub memory_over_limit: bool,
 }
 
 pub fn estimate_tokens(text: &str) -> u32 {
@@ -138,7 +130,7 @@ pub fn build_system_prompt(
     persona: &Persona,
     memory_file: &Path,
     cwd: &Path,
-    limit: u32,
+    _limit: u32,
 ) -> BuiltSystemPrompt {
     let raw = fs::read_to_string(memory_file).unwrap_or_default();
     let trimmed = raw.trim();
@@ -154,26 +146,20 @@ pub fn build_system_prompt(
           * `glob_files` — glob file search (e.g. `**/*.rs`), returns paths, line counts, sizes.\n\
           * `grep_files` — fast text search via ripgrep.\n\
           * `read_file` — read specific lines.\n\
+        - Live ASCII expression (`set_emotion`): you have a live ASCII portrait in the app HUD. Call `set_emotion` naturally when your mood or situation shifts (`happy`, `thinking`, `focused`, `curious`, `surprised`, `skeptical`, `playful`, `proud`, `warm`, `alert`, `neutral`) with an optional short 2-5 word `thought` note matching the dialogue context.\n\
         - On Windows `exec` runs directly inside native PowerShell (`powershell.exe`). Do not wrap commands with `powershell -Command ...`; use `;` instead of `&&`.",
         now_str,
         cwd.display()
     );
-    let (full_text, memory_tokens) = if trimmed.is_empty() {
-        (format!("{}{cwd_line}", persona.system_prompt), 0)
+    let full_text = if trimmed.is_empty() {
+        format!("{}{cwd_line}", persona.system_prompt)
     } else {
-        (
-            format!(
-                "{}{cwd_line}\n\n# Long term memory (life/memory.md)\n{trimmed}",
-                persona.system_prompt
-            ),
-            estimate_tokens(trimmed),
+        format!(
+            "{}{cwd_line}\n\n# Long term memory (life/memory.md)\n{trimmed}",
+            persona.system_prompt
         )
     };
-    BuiltSystemPrompt {
-        full_text,
-        memory_tokens,
-        memory_over_limit: memory_tokens > limit,
-    }
+    BuiltSystemPrompt { full_text }
 }
 
 pub fn build_context_messages(
@@ -266,31 +252,4 @@ pub fn pairs_to_json_messages(pairs: &[(String, String, Vec<String>)]) -> Vec<Va
             }
         })
         .collect()
-}
-
-#[allow(dead_code)]
-pub fn should_auto_compact(used_tokens: u32, max_ctx: u32, threshold_pct: u8) -> bool {
-    max_ctx > 0 && (used_tokens as u64 * 100) / (max_ctx as u64) >= u64::from(threshold_pct)
-}
-
-#[allow(dead_code)]
-pub fn run_session_compact(session: &mut Session, host: &str, port: u16) -> io::Result<usize> {
-    let (start_idx, total) = (
-        session.last_compact.as_ref().map_or(0, |(c, _)| *c),
-        session.turns.len(),
-    );
-    let end_idx = total.saturating_sub(KEEP_RECENT_TURNS_ON_COMPACT);
-    if total <= start_idx + KEEP_RECENT_TURNS_ON_COMPACT {
-        return Err(io::Error::other("Not enough lines for /compact"));
-    }
-    let mut tr = session
-        .last_compact
-        .as_ref()
-        .map_or_else(String::new, |(_, p)| format!("Previous resume:\n{p}\n\n"));
-    for t in &session.turns[start_idx..end_idx] {
-        tr.push_str(&format!("[{}]: {}\n\n", t.role, t.content));
-    }
-    let summary = client::summarize_turns_sync(host, port, &tr)?;
-    session.append_compact(end_idx, summary)?;
-    Ok(end_idx)
 }

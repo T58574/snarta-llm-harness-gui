@@ -62,13 +62,6 @@ pub fn remove_old_builds(
     Ok((count, freed))
 }
 
-#[derive(Debug, Clone)]
-pub struct VerificationReport {
-    pub version_line: String,
-    pub devices_output: String,
-    pub has_gpu_device: bool,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstallProgress {
     Downloading {
@@ -145,7 +138,7 @@ pub fn download_and_install_with_reporter<F>(
     runtime_dir: &Path,
     candidate: &ReleaseCandidate,
     mut on_progress: F,
-) -> io::Result<(InstalledBuild, VerificationReport)>
+) -> io::Result<(InstalledBuild, String)>
 where
     F: FnMut(InstallProgress),
 {
@@ -208,36 +201,7 @@ where
     ))
 }
 
-pub fn download_and_install(
-    runtime_dir: &Path,
-    candidate: &ReleaseCandidate,
-) -> io::Result<(InstalledBuild, VerificationReport)> {
-    let mut last_pct = 101;
-    download_and_install_with_reporter(runtime_dir, candidate, |prog| match prog {
-        InstallProgress::Downloading {
-            downloaded,
-            total,
-            pct,
-        } => {
-            if pct != last_pct && (pct.is_multiple_of(5) || downloaded == total) {
-                last_pct = pct;
-                let dl_mib = downloaded as f64 / BYTES_PER_MIB;
-                let tot_mib = total as f64 / BYTES_PER_MIB;
-                print!("\r  Downloading: {dl_mib:5.1} / {tot_mib:5.1} MiB ({pct}%)");
-                let _ = io::stdout().flush();
-            }
-        }
-        InstallProgress::Extracting => {
-            println!("\r  Extracting archive...                              ");
-        }
-        InstallProgress::Verifying => {
-            println!("  Verifying binary and GPU support...");
-        }
-        InstallProgress::Done => {}
-    })
-}
-
-fn verify_staged(staging_dir: &Path, backend: BackendKind) -> io::Result<VerificationReport> {
+fn verify_staged(staging_dir: &Path, backend: BackendKind) -> io::Result<String> {
     check_required_files(staging_dir, backend)?;
     let server_exe = find_file_recursive(staging_dir, SERVER_EXE_NAME)
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "llama-server.exe missing"))?;
@@ -365,16 +329,9 @@ pub fn check_required_files(dir: &Path, backend: BackendKind) -> io::Result<()> 
     Ok(())
 }
 
-pub fn verify_server_binary(
-    server_exe: &Path,
-    backend: BackendKind,
-) -> io::Result<VerificationReport> {
+pub fn verify_server_binary(server_exe: &Path, backend: BackendKind) -> io::Result<String> {
     if !cfg!(windows) {
-        return Ok(VerificationReport {
-            version_line: "skipped on non-Windows host".to_string(),
-            devices_output: String::new(),
-            has_gpu_device: true,
-        });
+        return Ok("skipped on non-Windows host".to_string());
     }
 
     let work_dir = server_exe.parent().unwrap_or_else(|| Path::new("."));
@@ -400,11 +357,7 @@ pub fn verify_server_binary(
         );
         return Err(io::Error::other(msg));
     }
-    Ok(VerificationReport {
-        version_line,
-        devices_output: devices_output.trim().to_string(),
-        has_gpu_device,
-    })
+    Ok(version_line)
 }
 
 fn run_cmd_combined(exe: &Path, dir: &Path, arg: &str, require_ok: bool) -> io::Result<String> {

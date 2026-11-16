@@ -17,6 +17,7 @@ pub const DIR_LOGS: &str = "logs";
 pub const FILE_SNARTA_LOG: &str = "snarta.log";
 pub const FILE_LLAMA_SERVER_LOG: &str = "llama-server.log";
 
+#[cfg(test)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RootSource {
     EnvVar,
@@ -24,21 +25,11 @@ pub enum RootSource {
     ExeDir,
 }
 
-impl RootSource {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::EnvVar => "SNARTA_HOME",
-            Self::ConfigAscent => "found snarta.toml upwards from exe",
-            Self::ExeDir => "executable directory",
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub root: PathBuf,
+    #[cfg(test)]
     pub source: RootSource,
-    pub exe_dir: PathBuf,
     pub cwd: PathBuf,
 }
 
@@ -63,8 +54,8 @@ impl AppPaths {
         {
             return Self {
                 root: home.to_path_buf(),
+                #[cfg(test)]
                 source: RootSource::EnvVar,
-                exe_dir: exe_dir.to_path_buf(),
                 cwd,
             };
         }
@@ -72,16 +63,16 @@ impl AppPaths {
         if let Some(found) = find_root_with_config(exe_dir) {
             return Self {
                 root: found,
+                #[cfg(test)]
                 source: RootSource::ConfigAscent,
-                exe_dir: exe_dir.to_path_buf(),
                 cwd,
             };
         }
 
         Self {
             root: exe_dir.to_path_buf(),
+            #[cfg(test)]
             source: RootSource::ExeDir,
-            exe_dir: exe_dir.to_path_buf(),
             cwd,
         }
     }

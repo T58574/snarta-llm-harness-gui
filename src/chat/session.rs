@@ -108,8 +108,6 @@ pub struct SessionSummary {
     pub id: String,
     pub path: PathBuf,
     pub title: String,
-    #[allow(dead_code)]
-    pub persona: String,
     pub message_count: usize,
     pub updated_ts: u64,
 }
@@ -318,13 +316,6 @@ impl Session {
         })
     }
 
-    #[allow(dead_code)]
-    pub fn rename(&mut self, new_title: &str) -> io::Result<()> {
-        self.title = new_title.trim().to_string();
-        self.updated_ts = now_secs();
-        self.append_meta()
-    }
-
     pub fn set_persona(&mut self, persona: &str) -> io::Result<()> {
         self.persona = persona.to_string();
         self.updated_ts = now_secs();
@@ -370,7 +361,6 @@ pub fn list_sessions(sessions_dir: &Path) -> io::Result<Vec<SessionSummary>> {
                 id: s.id,
                 path: s.path,
                 title: s.title,
-                persona: s.persona,
                 message_count: s.turns.len(),
                 updated_ts: s.updated_ts,
             });
@@ -396,13 +386,4 @@ fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs())
-}
-
-#[allow(dead_code)]
-pub fn format_duration(secs: f64) -> String {
-    if secs < 60.0 {
-        format!("{secs:.1}с")
-    } else {
-        format!("{}м {:02}с", (secs as u64) / 60, (secs as u64) % 60)
-    }
 }

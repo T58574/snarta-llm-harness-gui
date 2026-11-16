@@ -5,10 +5,6 @@ use std::io;
 use std::path::Path;
 use std::process::Command;
 
-#[allow(dead_code)]
-pub const DEFAULT_GLOB_LIMIT: usize = 100;
-#[allow(dead_code)]
-pub const DEFAULT_GREP_LIMIT: usize = 100;
 pub const MAX_FILE_SIZE_FOR_GREP: u64 = 2 * 1024 * 1024; // 2 MB
 const MAX_FILE_SIZE_FOR_LINE_COUNT: u64 = 5 * 1024 * 1024; // 5 MB
 

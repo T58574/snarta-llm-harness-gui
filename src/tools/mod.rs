@@ -7,43 +7,17 @@ pub mod shell;
 pub mod web_scrape;
 pub mod web_search;
 
-#[allow(unused_imports)]
 pub use registry::{
     execute_tool_call, format_tool_summary, sanitize_tool_arguments_for_server,
     tool_definitions_json,
 };
 
-#[allow(unused_imports)]
-pub use fs::{
-    ReadFileOptions, ReadLedger, harness_delete_file, harness_edit_file, harness_read_file,
-    harness_write_file, remember_fact, write_note_doc,
-};
-#[allow(unused_imports)]
-pub use plan::{
-    PLAN_MODE_ACTIVE, TaskItem, TaskManager, TaskStatus, enter_plan_mode, exit_plan_mode,
-    format_ask_user, is_plan_mode, set_plan_mode,
-};
-#[allow(unused_imports)]
-pub use search_local::{harness_glob, harness_grep};
-#[allow(unused_imports)]
-pub use security::{
-    DANGEROUS_CMD_PATTERNS, PROTECTED_DELETE_DIRS, is_dangerous_command, is_protected_path,
-    resolve_inside_life, resolve_user_path,
-};
-#[allow(unused_imports)]
-pub use shell::{
-    EXEC_TIMEOUT_SECS, MAX_HEAD_LINES, MAX_TAIL_LINES, ShellJobManager, run_exec_cmd,
-    sanitize_shell_command, truncate_head_tail,
-};
-#[allow(unused_imports)]
-pub use web_scrape::{
-    AlexandriaCapability, AlexandriaTracker, alexandria_discover, alexandria_scrape,
-    scrape_url_markdown,
-};
-#[allow(unused_imports)]
-pub use web_search::{
-    SearchOutcome, SearchResultItem, execute_search_cascade, format_search_results,
-};
+#[cfg(test)]
+pub use plan::set_plan_mode;
+#[cfg(test)]
+pub use security::{is_dangerous_command, resolve_inside_life};
+#[cfg(test)]
+pub use shell::sanitize_shell_command;
 
 use crate::config::{FirecrawlConfig, SearchConfig};
 use std::path::PathBuf;
@@ -119,6 +93,7 @@ pub struct ToolOutcome {
     pub mem_added: Option<String>,
     pub new_cwd: Option<PathBuf>,
     pub viewed_image: Option<PathBuf>,
+    pub emotion_changed: Option<(String, Option<String>)>,
 }
 
 #[derive(Debug, Default)]

@@ -1,3 +1,4 @@
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::runtime::install::{
     self, InstallProgress, InstalledBuild, download_and_install_with_reporter, list_installed,
@@ -7,7 +8,7 @@ use crate::runtime::releases::{ReleaseCandidate, fetch_candidates};
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{ActiveTheme, IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{ActiveTheme, Sizable, Size, h_flex, v_flex};
 use std::sync::{Arc, Mutex};
 
 #[derive(Default)]
@@ -88,13 +89,14 @@ impl RuntimeModal {
                             .child(
                                 div()
                                     .font_weight(FontWeight::SEMIBOLD)
-                                    .child("Установленные сборки:"),
+                                    .child("Установленные сборки"),
                             )
                             .child(
                                 Button::new("clean-old-builds-btn")
-                                    .ghost()
+                                    .secondary()
+                                    .outline()
                                     .with_size(Size::Small)
-                                    .icon(IconName::Delete)
+                                    .icon(icons::trash())
                                     .label("Очистить старые")
                                     .on_click({
                                         let inner = self.inner.clone();
@@ -232,7 +234,7 @@ impl RuntimeModal {
                                                             .into_any_element()
                                                     } else {
                                                         Button::new(format!("set-active-{}", bid))
-                                                            .ghost()
+                                                            .outline()
                                                             .with_size(Size::Small)
                                                             .label("Сделать активным")
                                                             .on_click({
@@ -275,13 +277,13 @@ impl RuntimeModal {
                             .child(
                                 div()
                                     .font_weight(FontWeight::SEMIBOLD)
-                                    .child("Доступные релизы (GitHub):"),
+                                    .child("Доступные релизы (GitHub)"),
                             )
                             .child(
                                 Button::new("fetch-updates-btn")
                                     .primary()
                                     .with_size(Size::Small)
-                                    .icon(IconName::RotateCw)
+                                    .icon(icons::refresh())
                                     .label(if is_fetching {
                                         "Поиск..."
                                     } else {
@@ -482,10 +484,11 @@ impl RuntimeModal {
                                                                 let mut guard = inner_bg.lock().unwrap_or_else(|e| e.into_inner());
                                                                 guard.is_installing = false;
                                                                 match res {
-                                                                    Ok((installed_build, _report)) => {
+                                                                    Ok((installed_build, version_line)) => {
                                                                         guard.install_status = Some(format!(
-                                                                            "Сборка {} успешно установлена!",
-                                                                            installed_build.build_id
+                                                                            "Сборка {} установлена ({})",
+                                                                            installed_build.build_id,
+                                                                            version_line
                                                                         ));
                                                                         guard.installed =
                                                                             list_installed(&runtime_dir)

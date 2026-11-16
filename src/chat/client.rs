@@ -213,48 +213,6 @@ fn run_sse_stream(
     });
 }
 
-#[allow(dead_code)]
-pub fn summarize_turns_sync(host: &str, port: u16, transcript: &str) -> io::Result<String> {
-    let url = format!("http://{host}:{port}/v1/chat/completions");
-    let body = json!({
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a prompt engineer; your task is to condense the dialogue context so that the next model is informed about what has transpired. Create a concise, precise summary containing key facts, decisions, context, and open questions. Do not include introductory phrases."
-            },
-            {
-                "role": "user",
-                "content": transcript
-            }
-        ],
-        "stream": false,
-        "temperature": 0.3,
-        "max_tokens": 2048,
-        "reasoning_effort": "low"
-    });
-    let agent: ureq::Agent = ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(180)))
-        .build()
-        .into();
-    let mut resp = agent
-        .post(&url)
-        .send_json(&body)
-        .map_err(|e| io::Error::other(format!("compact request failed: {e}")))?;
-    let val: Value = resp
-        .body_mut()
-        .read_json()
-        .map_err(|e| io::Error::other(e.to_string()))?;
-    let text = val["choices"][0]["message"]["content"]
-        .as_str()
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    if text.is_empty() {
-        return Err(io::Error::other("empty response during context compression"));
-    }
-    Ok(text)
-}
-
 /// Exactly counts tokens for `content` using llama-server's `/tokenize` endpoint.
 /// Returns the exact count calculated by the loaded model's compiled tokenizer.
 pub fn count_tokens_exact(host: &str, port: u16, content: &str) -> io::Result<usize> {

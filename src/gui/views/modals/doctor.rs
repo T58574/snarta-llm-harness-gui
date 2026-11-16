@@ -1,11 +1,13 @@
 use crate::gpu;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_ELEVATED, COLOR_PINK_PRIMARY,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_ORANGE, COLOR_BG_ELEVATED, COLOR_BORDER, COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 
 pub struct DoctorModal;
 
@@ -30,162 +32,125 @@ impl DoctorModal {
             .gap_3()
             .child(
                 v_flex()
-                    .p_3()
+                    .p_3p5()
                     .rounded_lg()
-                    .bg(COLOR_GRAPHITE_ELEVATED)
+                    .bg(COLOR_BG_ELEVATED)
                     .border_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .gap_2()
                     .child(
-                        div()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(COLOR_PINK_PRIMARY)
-                            .child("Графический ускоритель"),
+                        h_flex()
+                            .items_center()
+                            .gap_2()
+                            .child(icons::cpu().with_size(Size::Small).text_color(COLOR_ACCENT_ORANGE))
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Графический ускоритель"),
+                            ),
                     )
-                    .child(h_flex().justify_between().child("Видеокарта:").child(
-                        if let Some(g) = amd_gpu {
-                            g.name.clone()
-                        } else {
-                            "Не обнаружен совместимый AMD GPU".to_string()
-                        },
+                    .child(Self::info_row(
+                        "Видеокарта",
+                        amd_gpu
+                            .map(|g| g.name.clone())
+                            .unwrap_or_else(|| "Совместимый AMD GPU не обнаружен".to_string()),
                     ))
-                    .child(h_flex().justify_between().child("Выделенная видеопамять:").child(
-                        if let Some(g) = amd_gpu {
-                            format!("{} МБ", g.dedicated_vram_mib())
-                        } else {
-                            "Н/Д".to_string()
-                        },
+                    .child(Self::info_row(
+                        "Выделенная VRAM",
+                        amd_gpu
+                            .map(|g| format!("{} МБ", g.dedicated_vram_mib()))
+                            .unwrap_or_else(|| "Нет данных".to_string()),
                     ))
-                    .child(h_flex().justify_between().child("Архитектура GFX:").child(
-                        if let Some(g) = amd_gpu {
-                            if let Some(ref arch) = g.gfx_target {
-                                arch.clone()
-                            } else {
-                                "Неизвестно".to_string()
-                            }
-                        } else {
-                            "Н/Д".to_string()
-                        },
+                    .child(Self::info_row(
+                        "Архитектура GFX",
+                        amd_gpu
+                            .and_then(|g| g.gfx_target.clone())
+                            .unwrap_or_else(|| "Не определена".to_string()),
                     )),
             )
             .child(
                 v_flex()
-                    .p_3()
+                    .p_3p5()
                     .rounded_lg()
-                    .bg(COLOR_GRAPHITE_ELEVATED)
+                    .bg(COLOR_BG_ELEVATED)
                     .border_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .gap_2p5()
                     .child(
+                        h_flex()
+                            .items_center()
+                            .gap_2()
+                            .child(icons::folder().with_size(Size::Small).text_color(COLOR_ACCENT_BLUE))
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Рабочие папки и файлы"),
+                            ),
+                    )
+                    .child(Self::path_row("doc-open-models", "Модели", models_dir, false))
+                    .child(Self::path_row("doc-open-life", "Память и сессии", life_dir, false))
+                    .child(Self::path_row("doc-open-cfg", "Конфигурация", config_file, true))
+                    .child(Self::path_row("doc-open-logs", "Журналы и логи", logs_dir, false)),
+            )
+    }
+
+    fn info_row(label: &'static str, value: String) -> impl IntoElement {
+        h_flex()
+            .justify_between()
+            .items_center()
+            .text_size(rems(0.84))
+            .child(div().text_color(COLOR_TEXT_MUTED).child(label))
+            .child(div().font_weight(FontWeight::MEDIUM).text_color(COLOR_TEXT_PRIMARY).child(value))
+    }
+
+    fn path_row(
+        id: &'static str,
+        title: &'static str,
+        path: std::path::PathBuf,
+        is_file: bool,
+    ) -> impl IntoElement {
+        let display = path.to_string_lossy().to_string();
+        h_flex()
+            .justify_between()
+            .items_center()
+            .gap_3()
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .gap_0p5()
+                    .child(
                         div()
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(COLOR_PINK_PRIMARY)
-                            .child("Рабочее окружение и пути"),
+                            .text_size(rems(0.84))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(COLOR_TEXT_PRIMARY)
+                            .child(title),
                     )
                     .child(
-                        h_flex()
-                            .justify_between()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                v_flex()
-                                    .gap_0p5()
-                                    .child(div().font_weight(FontWeight::SEMIBOLD).child("Директория моделей"))
-                                    .child(
-                                        div()
-                                            .text_size(rems(0.75))
-                                            .child(models_dir.to_string_lossy().to_string()),
-                                    ),
-                            )
-                            .child(
-                                Button::new("doc-open-models")
-                                    .secondary()
-                                    .with_size(Size::XSmall)
-                                    .icon(IconName::Folder)
-                                    .label("Открыть")
-                                    .on_click(move |_, _, _cx| {
-                                        crate::vision::open_in_explorer(&models_dir);
-                                    }),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .justify_between()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                v_flex()
-                                    .gap_0p5()
-                                    .child(div().font_weight(FontWeight::SEMIBOLD).child("Память и сессии"))
-                                    .child(
-                                        div()
-                                            .text_size(rems(0.75))
-                                            .child(life_dir.to_string_lossy().to_string()),
-                                    ),
-                            )
-                            .child(
-                                Button::new("doc-open-life")
-                                    .secondary()
-                                    .with_size(Size::XSmall)
-                                    .icon(IconName::Folder)
-                                    .label("Открыть")
-                                    .on_click(move |_, _, _cx| {
-                                        crate::vision::open_in_explorer(&life_dir);
-                                    }),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .justify_between()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                v_flex()
-                                    .gap_0p5()
-                                    .child(div().font_weight(FontWeight::SEMIBOLD).child("Конфигурация"))
-                                    .child(
-                                        div()
-                                            .text_size(rems(0.75))
-                                            .child(config_file.to_string_lossy().to_string()),
-                                    ),
-                            )
-                            .child(
-                                Button::new("doc-open-cfg")
-                                    .secondary()
-                                    .with_size(Size::XSmall)
-                                    .icon(IconName::FolderOpen)
-                                    .label("Показать")
-                                    .on_click(move |_, _, _cx| {
-                                        crate::vision::open_in_explorer(&config_file);
-                                    }),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .justify_between()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                v_flex()
-                                    .gap_0p5()
-                                    .child(div().font_weight(FontWeight::SEMIBOLD).child("Журналы и логи"))
-                                    .child(
-                                        div()
-                                            .text_size(rems(0.75))
-                                            .child(logs_dir.to_string_lossy().to_string()),
-                                    ),
-                            )
-                            .child(
-                                Button::new("doc-open-logs")
-                                    .secondary()
-                                    .with_size(Size::XSmall)
-                                    .icon(IconName::Folder)
-                                    .label("Открыть")
-                                    .on_click(move |_, _, _cx| {
-                                        crate::vision::open_in_explorer(&logs_dir);
-                                    }),
-                            ),
+                        div()
+                            .w_full()
+                            .truncate()
+                            .text_size(rems(0.75))
+                            .text_color(COLOR_TEXT_MUTED)
+                            .child(display),
                     ),
+            )
+            .child(
+                Button::new(id)
+                    .secondary()
+                    .outline()
+                    .with_size(Size::XSmall)
+                    .icon(if is_file {
+                        icons::folder_open()
+                    } else {
+                        icons::folder()
+                    })
+                    .label(if is_file { "Показать" } else { "Открыть" })
+                    .on_click(move |_, _, _cx| {
+                        crate::vision::open_in_explorer(&path);
+                    }),
             )
     }
 }

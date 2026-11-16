@@ -1,12 +1,13 @@
 use super::SettingsModal;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_ELEVATED, COLOR_GRAPHITE_INPUT, COLOR_TEXT_MUTED,
+    COLOR_ACCENT_ORANGE, COLOR_BG_ELEVATED, COLOR_BG_INPUT, COLOR_BORDER, COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
 use gpui_component::input::{Input, InputState};
+use gpui_component::switch::Switch;
 use gpui_component::{Sizable, Size, h_flex, v_flex};
 
 impl SettingsModal {
@@ -19,16 +20,21 @@ impl SettingsModal {
         state_entity: &Entity<AppState>,
     ) -> AnyElement {
         v_flex()
-            .gap_3()
+            .gap_4()
             .child(
                 v_flex()
-                    .gap_1()
+                    .p_3p5()
+                    .gap_2()
+                    .rounded_lg()
+                    .bg(COLOR_BG_ELEVATED)
+                    .border_1()
+                    .border_color(COLOR_BORDER)
                     .child(
                         div()
                             .text_size(rems(0.85))
                             .font_weight(FontWeight::BOLD)
                             .text_color(COLOR_TEXT_PRIMARY)
-                            .child("Персона по умолчанию:"),
+                            .child("Персона по умолчанию"),
                     )
                     .child(
                         div()
@@ -45,18 +51,18 @@ impl SettingsModal {
                                 let pname = p.name.clone();
                                 let shared = self.shared.clone();
                                 let state_entity = state_entity.clone();
-                                Button::new(format!("persona-opt-{}", p.name))
-                                    .with_variant(if is_sel {
-                                        gpui_component::button::ButtonVariant::Primary
-                                    } else {
-                                        gpui_component::button::ButtonVariant::Secondary
-                                    })
+                                let btn = Button::new(format!("persona-opt-{}", p.name))
                                     .with_size(Size::Small)
                                     .label(p.name.clone())
                                     .on_click(move |_, _, cx| {
                                         shared.borrow_mut().default_persona = pname.clone();
                                         state_entity.update(cx, |_, cx| cx.notify());
-                                    })
+                                    });
+                                if is_sel {
+                                    btn.primary()
+                                } else {
+                                    btn.outline()
+                                }
                             })),
                     ),
             )
@@ -92,26 +98,34 @@ impl SettingsModal {
                     }
                 },
             ))
-            .child(Self::render_field(
-                "Потолок токенов долговременной памяти:",
-                "Максимальное число токенов для файла life/memory.md в промпте",
-                &self.memory_token_limit_input,
-            ))
-            .child(Self::render_field(
-                "Порог сжатия контекста в процентах:",
-                "Процент заполнения окна контекста для предупреждения или сжатия, от 1 до 100",
-                &self.compact_threshold_pct_input,
-            ))
-            .child(Self::render_field(
-                "Максимум шагов инструментов за ход:",
-                "Ограничение числа последовательных вызовов инструментов агентом",
-                &self.max_tool_steps_input,
-            ))
-            .child(Self::render_field(
-                "Лимит чтения файла в байтах:",
-                "Максимальный размер файла для инструмента чтения",
-                &self.max_read_file_bytes_input,
-            ))
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Потолок токенов долговременной памяти",
+                        "Максимальное число токенов для файла life/memory.md в промпте",
+                        &self.memory_token_limit_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Порог сжатия контекста (%)",
+                        "Процент заполнения контекста для предупреждения, от 1 до 100",
+                        &self.compact_threshold_pct_input,
+                    ))),
+            )
+            .child(
+                h_flex()
+                    .gap_3()
+                    .child(div().flex_1().child(Self::render_field(
+                        "Максимум шагов инструментов за ход",
+                        "Ограничение последовательных вызовов инструментов агентом",
+                        &self.max_tool_steps_input,
+                    )))
+                    .child(div().flex_1().child(Self::render_field(
+                        "Лимит чтения файла (байты)",
+                        "Максимальный размер файла для инструмента чтения",
+                        &self.max_read_file_bytes_input,
+                    ))),
+            )
             .into_any_element()
     }
 
@@ -169,18 +183,18 @@ impl SettingsModal {
                                 let val_str = (*val).to_string();
                                 let shared = self.shared.clone();
                                 let state_entity = state_entity.clone();
-                                Button::new(format!("search-prov-{}", val))
-                                    .with_variant(if is_sel {
-                                        gpui_component::button::ButtonVariant::Primary
-                                    } else {
-                                        gpui_component::button::ButtonVariant::Secondary
-                                    })
+                                let btn = Button::new(format!("search-prov-{}", val))
                                     .with_size(Size::Small)
                                     .label(*label)
                                     .on_click(move |_, _, cx| {
                                         shared.borrow_mut().search_provider = val_str.clone();
                                         state_entity.update(cx, |_, cx| cx.notify());
-                                    })
+                                    });
+                                if is_sel {
+                                    btn.primary()
+                                } else {
+                                    btn.outline()
+                                }
                             })),
                     ),
             )
@@ -263,9 +277,11 @@ impl SettingsModal {
         h_flex()
             .justify_between()
             .items_center()
-            .p_2()
+            .p_3()
             .rounded_lg()
-            .bg(COLOR_GRAPHITE_ELEVATED)
+            .bg(COLOR_BG_ELEVATED)
+            .border_1()
+            .border_color(COLOR_BORDER)
             .child(
                 v_flex()
                     .gap_0p5()
@@ -284,15 +300,11 @@ impl SettingsModal {
                     ),
             )
             .child(
-                Button::new(id)
-                    .with_variant(if enabled {
-                        gpui_component::button::ButtonVariant::Primary
-                    } else {
-                        gpui_component::button::ButtonVariant::Secondary
-                    })
-                    .with_size(Size::Small)
-                    .label(if enabled { "Вкл" } else { "Выкл" })
-                    .on_click(move |_, _, cx| {
+                Switch::new(id)
+                    .checked(enabled)
+                    .color(COLOR_ACCENT_ORANGE)
+                    .with_size(Size::Medium)
+                    .on_change(move |_checked, _window, cx| {
                         on_toggle(cx);
                     }),
             )
@@ -322,9 +334,9 @@ impl SettingsModal {
             .child(
                 div()
                     .rounded_md()
-                    .bg(COLOR_GRAPHITE_INPUT)
+                    .bg(COLOR_BG_INPUT)
                     .border_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .child(Input::new(input)),
             )
             .into_any_element()

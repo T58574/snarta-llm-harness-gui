@@ -30,6 +30,7 @@ impl GpuInfo {
         self.dedicated_vram_bytes / BYTES_PER_MIB
     }
 
+    #[cfg(test)]
     pub fn shared_system_mib(&self) -> u64 {
         self.shared_system_bytes / BYTES_PER_MIB
     }

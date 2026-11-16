@@ -40,13 +40,6 @@ impl ReadLedger {
             false
         }
     }
-
-    #[allow(dead_code)]
-    pub fn clear(&self) {
-        if let Ok(mut set) = self.read_paths.lock() {
-            set.clear();
-        }
-    }
 }
 
 /// Options for reading files with pagination and offset support.

@@ -1,6 +1,7 @@
 use super::{AppState, ServerStatus};
 use crate::chat::engine::AgentEvent;
 use crate::chat::session::{ChatTurn, ToolTrace, TurnStep};
+use crate::gui::anim::avatar::AvatarEmotion;
 use crate::server;
 
 impl AppState {
@@ -85,6 +86,10 @@ impl AppState {
                     }
                     self.streaming_steps[step_idx].content.push_str(&delta);
                     self.streaming_content.push_str(&delta);
+                    if !self.has_explicit_emotion && self.avatar_emotion == AvatarEmotion::Thinking
+                    {
+                        self.avatar_emotion = AvatarEmotion::Warm;
+                    }
                     stream_had_delta = true;
                 }
                 AgentEvent::ReasoningDelta { step_idx, delta } => {
@@ -96,6 +101,9 @@ impl AppState {
                         .get_or_insert_with(String::new);
                     r.push_str(&delta);
                     self.streaming_reasoning.push_str(&delta);
+                    if !self.has_explicit_emotion {
+                        self.avatar_emotion = AvatarEmotion::Thinking;
+                    }
                     stream_had_delta = true;
                 }
                 AgentEvent::ToolStarted {
@@ -114,6 +122,9 @@ impl AppState {
                             arguments: String::new(),
                             output: "Running...".to_string(),
                         });
+                    }
+                    if name != "set_emotion" && !self.has_explicit_emotion {
+                        self.avatar_emotion = AvatarEmotion::Focused;
                     }
                     step_calls[call_idx].name = name;
                     step_calls[call_idx].arguments = arguments;
@@ -152,6 +163,12 @@ impl AppState {
                 AgentEvent::CwdChanged(new_cwd) => {
                     self.paths.cwd = new_cwd;
                 }
+                AgentEvent::EmotionChanged { emotion, thought } => {
+                    self.avatar_emotion = AvatarEmotion::from_str(&emotion);
+                    self.avatar_thought = thought;
+                    self.has_explicit_emotion = true;
+                    stream_had_delta = true;
+                }
                 AgentEvent::TurnComplete {
                     turn,
                     gen_tps,
@@ -159,6 +176,10 @@ impl AppState {
                     completion_tokens,
                 } => {
                     self.is_generating = false;
+                    if !self.has_explicit_emotion {
+                        self.avatar_emotion = AvatarEmotion::Neutral;
+                        self.avatar_thought = None;
+                    }
                     self.vram.tps = gen_tps;
                     self.last_gen_tokens = completion_tokens;
                     if let Some(pt) = prompt_tokens {
@@ -190,6 +211,8 @@ impl AppState {
                 }
                 AgentEvent::Error(err) => {
                     self.is_generating = false;
+                    self.avatar_emotion = AvatarEmotion::Alert;
+                    self.avatar_thought = Some("Ошибка ответа".to_string());
                     let mut steps = std::mem::take(&mut self.streaming_steps);
                     steps.retain(|s| {
                         s.reasoning.is_some()
@@ -386,6 +409,9 @@ impl AppState {
         self.needs_scroll_to_bottom = true;
         self.active_stream = Some(stream);
         self.is_generating = true;
+        self.has_explicit_emotion = false;
+        self.avatar_emotion = AvatarEmotion::Curious;
+        self.avatar_thought = None;
         self.streaming_content.clear();
         self.streaming_reasoning.clear();
         self.streaming_tools.clear();

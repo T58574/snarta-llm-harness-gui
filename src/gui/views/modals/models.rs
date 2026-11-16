@@ -1,12 +1,14 @@
+use crate::gui::icons::icons;
 use crate::gui::state::{AppState, ServerStatus};
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_ELEVATED, COLOR_PINK_MUTED_BG,
-    COLOR_PINK_PRIMARY, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_ACCENT_GREEN, COLOR_ACCENT_GREEN_MUTED,
+    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
+    COLOR_BG_ELEVATED_HOVER, COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 
 pub struct ModelsModal;
 
@@ -32,34 +34,41 @@ impl ModelsModal {
 
         v_flex()
             .w(rems(46.0))
-            .p_4()
+            .p_5()
             .rounded_xl()
-            .bg(COLOR_GRAPHITE_CANVAS)
+            .bg(COLOR_BG_CANVAS)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .shadow_lg()
-            .gap_3()
+            .gap_3p5()
             .child(
                 h_flex()
                     .justify_between()
                     .items_center()
                     .child(
-                        div()
-                            .text_size(rems(1.1))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(COLOR_TEXT_PRIMARY)
-                            .child("Выбор и запуск моделей"),
+                        h_flex()
+                            .items_center()
+                            .gap_2()
+                            .child(icons::cpu().with_size(Size::Medium).text_color(COLOR_ACCENT_ORANGE))
+                            .child(
+                                div()
+                                    .text_size(rems(1.1))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Модели GGUF"),
+                            ),
                     )
                     .child(
                         h_flex()
                             .items_center()
-                            .gap_2()
+                            .gap_1p5()
                             .child(
                                 Button::new("open-models-folder-btn")
                                     .secondary()
+                                    .outline()
                                     .with_size(Size::Small)
-                                    .icon(IconName::Folder)
-                                    .label("Открыть папку")
+                                    .icon(icons::folder())
+                                    .label("Папка моделей")
                                     .on_click({
                                         let dir = models_dir_path.clone();
                                         move |_, _, _cx| {
@@ -70,8 +79,9 @@ impl ModelsModal {
                             .child(
                                 Button::new("refresh-models-btn")
                                     .secondary()
+                                    .outline()
                                     .with_size(Size::Small)
-                                    .icon(IconName::RotateCw)
+                                    .icon(icons::refresh())
                                     .label("Обновить")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -87,7 +97,7 @@ impl ModelsModal {
                                 Button::new("close-models")
                                     .ghost()
                                     .with_size(Size::Small)
-                                    .icon(IconName::Close)
+                                    .icon(icons::close())
                                     .tooltip("Закрыть")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -104,68 +114,69 @@ impl ModelsModal {
             .child(
                 v_flex()
                     .id("models-scroll")
-                    .max_h(rems(24.0))
+                    .max_h(rems(25.0))
                     .overflow_y_scroll()
-                    .gap_1p5()
+                    .gap_2()
                     .children(if models.is_empty() {
-                        vec![v_flex()
-                            .p_6()
-                            .items_center()
-                            .justify_center()
-                            .gap_3()
-                            .bg(COLOR_GRAPHITE_ELEVATED)
-                            .rounded_lg()
-                            .border_1()
-                            .border_color(COLOR_GRAPHITE_BORDER)
-                            .child(
-                                div()
-                                    .font_weight(FontWeight::SEMIBOLD)
-                                    .text_size(rems(0.95))
-                                    .text_color(COLOR_TEXT_PRIMARY)
-                                    .child("Модели .gguf не найдены"),
-                            )
-                            .child(
-                                div()
-                                    .text_size(rems(0.8))
-                                    .text_color(COLOR_TEXT_MUTED)
-                                    .child(format!(
-                                        "Поместите файлы моделей формата .gguf в папку:\n{models_dir_str}"
-                                    )),
-                            )
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .child(
-                                        Button::new("empty-open-folder-btn")
-                                            .secondary()
-                                            .with_size(Size::Small)
-                                            .icon(IconName::Folder)
-                                            .label("Открыть папку")
-                                            .on_click({
-                                                let dir = models_dir_path.clone();
-                                                move |_, _, _cx| {
-                                                    crate::vision::open_in_explorer(&dir);
-                                                }
-                                            }),
-                                    )
-                                    .child(
-                                        Button::new("empty-refresh-btn")
-                                            .primary()
-                                            .with_size(Size::Small)
-                                            .icon(IconName::RotateCw)
-                                            .label("Обновить список")
-                                            .on_click({
-                                                let state_entity = state_entity.clone();
-                                                move |_, _, cx| {
-                                                    state_entity.update(cx, |s, cx| {
-                                                        s.rescan_models();
-                                                        cx.notify();
-                                                    });
-                                                }
-                                            }),
-                                    ),
-                            )
-                            .into_any_element()]
+                        vec![
+                            v_flex()
+                                .p_6()
+                                .items_center()
+                                .justify_center()
+                                .gap_3()
+                                .bg(COLOR_BG_ELEVATED)
+                                .rounded_lg()
+                                .border_1()
+                                .border_color(COLOR_BORDER)
+                                .child(
+                                    div()
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_size(rems(0.95))
+                                        .text_color(COLOR_TEXT_PRIMARY)
+                                        .child("Файлы .gguf не найдены"),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(rems(0.8))
+                                        .text_color(COLOR_TEXT_MUTED)
+                                        .child(format!("Поместите модели .gguf в папку {models_dir_str}")),
+                                )
+                                .child(
+                                    h_flex()
+                                        .gap_2()
+                                        .child(
+                                            Button::new("empty-open-folder-btn")
+                                                .secondary()
+                                                .outline()
+                                                .with_size(Size::Small)
+                                                .icon(icons::folder())
+                                                .label("Открыть папку")
+                                                .on_click({
+                                                    let dir = models_dir_path.clone();
+                                                    move |_, _, _cx| {
+                                                        crate::vision::open_in_explorer(&dir);
+                                                    }
+                                                }),
+                                        )
+                                        .child(
+                                            Button::new("empty-refresh-btn")
+                                                .primary()
+                                                .with_size(Size::Small)
+                                                .icon(icons::refresh())
+                                                .label("Обновить список")
+                                                .on_click({
+                                                    let state_entity = state_entity.clone();
+                                                    move |_, _, cx| {
+                                                        state_entity.update(cx, |s, cx| {
+                                                            s.rescan_models();
+                                                            cx.notify();
+                                                        });
+                                                    }
+                                                }),
+                                        ),
+                                )
+                                .into_any_element(),
+                        ]
                     } else {
                         models
                             .into_iter()
@@ -186,22 +197,24 @@ impl ModelsModal {
                                     .justify_between()
                                     .items_center()
                                     .p_3()
+                                    .gap_3()
                                     .rounded_lg()
                                     .bg(if is_active {
-                                        COLOR_PINK_MUTED_BG
+                                        COLOR_ACCENT_ORANGE_MUTED
                                     } else {
-                                        COLOR_GRAPHITE_ELEVATED
+                                        COLOR_BG_ELEVATED
                                     })
                                     .border_1()
                                     .border_color(if is_active {
-                                        COLOR_PINK_PRIMARY.opacity(0.6)
+                                        COLOR_ACCENT_ORANGE.opacity(0.6)
                                     } else {
-                                        COLOR_GRAPHITE_BORDER
+                                        COLOR_BORDER
                                     })
-                                    .hover(|s| s.bg(COLOR_GRAPHITE_BORDER))
+                                    .hover(|s| s.bg(COLOR_BG_ELEVATED_HOVER))
                                     .child(
                                         v_flex()
                                             .flex_1()
+                                            .min_w_0()
                                             .gap_1()
                                             .cursor_pointer()
                                             .on_mouse_down(MouseButton::Left, {
@@ -216,9 +229,11 @@ impl ModelsModal {
                                             })
                                             .child(
                                                 div()
+                                                    .w_full()
+                                                    .truncate()
                                                     .font_weight(FontWeight::SEMIBOLD)
                                                     .text_color(if is_active {
-                                                        COLOR_PINK_PRIMARY
+                                                        COLOR_ACCENT_ORANGE
                                                     } else {
                                                         COLOR_TEXT_PRIMARY
                                                     })
@@ -227,50 +242,51 @@ impl ModelsModal {
                                             .child(
                                                 h_flex()
                                                     .items_center()
-                                                    .gap_2()
-                                                    .text_size(rems(0.75))
+                                                    .flex_wrap()
+                                                    .gap_1p5()
+                                                    .text_size(rems(0.74))
                                                     .text_color(COLOR_TEXT_MUTED)
                                                     .child(
                                                         div()
                                                             .px_1p5()
                                                             .py_0p5()
-                                                            .rounded_md()
-                                                            .bg(COLOR_GRAPHITE_BORDER)
+                                                            .rounded_sm()
+                                                            .bg(COLOR_BG_CANVAS)
+                                                            .border_1()
+                                                            .border_color(COLOR_BORDER)
                                                             .text_color(COLOR_TEXT_PRIMARY)
                                                             .child(quant),
                                                     )
-                                                    .child(div().child(format!("{arch} • {:.2} GB • {ctx_k}k ctx", size_gib)))
-                                                    .children(if has_mtp {
-                                                        Some(
-                                                            div()
-                                                                .px_1p5()
-                                                                .py_0p5()
-                                                                .rounded_md()
-                                                                .bg(COLOR_PINK_PRIMARY.opacity(0.2))
-                                                                .text_color(COLOR_PINK_PRIMARY)
-                                                                .child("Черновик MTP"),
-                                                        )
-                                                    } else {
-                                                        None
-                                                    })
+                                                    .child(div().child(format!(
+                                                        "{arch} · {size_gib:.2} GB · {ctx_k}k ctx"
+                                                    )))
+                                                    .children(has_mtp.then(|| {
+                                                        div()
+                                                            .px_1p5()
+                                                            .py_0p5()
+                                                            .rounded_sm()
+                                                            .bg(COLOR_ACCENT_BLUE_MUTED)
+                                                            .text_color(COLOR_ACCENT_BLUE)
+                                                            .child("MTP")
+                                                    }))
                                                     .children(match reasoning_mode {
                                                         crate::gguf::ReasoningMode::Toggleable => Some(
                                                             div()
                                                                 .px_1p5()
                                                                 .py_0p5()
-                                                                .rounded_md()
-                                                                .bg(COLOR_GRAPHITE_BORDER)
-                                                                .text_color(COLOR_TEXT_PRIMARY)
+                                                                .rounded_sm()
+                                                                .bg(COLOR_BG_CANVAS)
+                                                                .text_color(COLOR_TEXT_MUTED)
                                                                 .child("Рассуждения"),
                                                         ),
                                                         crate::gguf::ReasoningMode::ForcedInTemplate => Some(
                                                             div()
                                                                 .px_1p5()
                                                                 .py_0p5()
-                                                                .rounded_md()
-                                                                .bg(COLOR_GRAPHITE_BORDER)
-                                                                .text_color(COLOR_TEXT_PRIMARY)
-                                                                .child("Рассуждения в шаблоне"),
+                                                                .rounded_sm()
+                                                                .bg(COLOR_BG_CANVAS)
+                                                                .text_color(COLOR_TEXT_MUTED)
+                                                                .child("Шаблон рассуждений"),
                                                         ),
                                                         crate::gguf::ReasoningMode::None => None,
                                                     }),
@@ -278,23 +294,20 @@ impl ModelsModal {
                                     )
                                     .child(
                                         h_flex()
+                                            .flex_shrink_0()
                                             .gap_2()
                                             .items_center()
-                                            .children(if is_active {
-                                                Some(
-                                                    div()
-                                                        .px_2()
-                                                        .py_1()
-                                                        .rounded_md()
-                                                        .bg(COLOR_PINK_PRIMARY.opacity(0.15))
-                                                        .text_color(COLOR_PINK_PRIMARY)
-                                                        .font_weight(FontWeight::SEMIBOLD)
-                                                        .text_size(rems(0.75))
-                                                        .child("Выбрана"),
-                                                )
-                                            } else {
-                                                None
-                                            })
+                                            .children(is_active.then(|| {
+                                                div()
+                                                    .px_2()
+                                                    .py_1()
+                                                    .rounded_md()
+                                                    .bg(COLOR_ACCENT_ORANGE.opacity(0.16))
+                                                    .text_color(COLOR_ACCENT_ORANGE)
+                                                    .font_weight(FontWeight::SEMIBOLD)
+                                                    .text_size(rems(0.74))
+                                                    .child("Выбрана")
+                                            }))
                                             .child(if is_running {
                                                 h_flex()
                                                     .gap_2()
@@ -304,17 +317,18 @@ impl ModelsModal {
                                                             .px_2()
                                                             .py_1()
                                                             .rounded_md()
-                                                            .bg(rgb(0x22c55e).opacity(0.15))
-                                                            .text_color(rgb(0x22c55e))
+                                                            .bg(COLOR_ACCENT_GREEN_MUTED)
+                                                            .text_color(COLOR_ACCENT_GREEN)
                                                             .font_weight(FontWeight::SEMIBOLD)
-                                                            .text_size(rems(0.75))
-                                                            .child("В сервере"),
+                                                            .text_size(rems(0.74))
+                                                            .child("Работает"),
                                                     )
                                                     .child(
                                                         Button::new(format!("stop-srv-{}", file_name))
                                                             .danger()
                                                             .with_size(Size::Small)
-                                                            .label("Остановить")
+                                                            .icon(icons::square_stop())
+                                                            .label("Стоп")
                                                             .on_click({
                                                                 let state_entity = state_entity.clone();
                                                                 move |_, _, cx| {
@@ -327,15 +341,18 @@ impl ModelsModal {
                                                     )
                                                     .into_any_element()
                                             } else if is_starting {
-                                                div()
-                                                    .text_color(COLOR_PINK_PRIMARY)
-                                                    .text_size(rems(0.8))
-                                                    .child("Запуск...")
+                                                Button::new(format!("starting-srv-{}", file_name))
+                                                    .secondary()
+                                                    .outline()
+                                                    .with_size(Size::Small)
+                                                    .loading(true)
+                                                    .label("Запуск...")
                                                     .into_any_element()
                                             } else {
                                                 Button::new(format!("start-srv-{}", file_name))
                                                     .primary()
                                                     .with_size(Size::Small)
+                                                    .icon(icons::play())
                                                     .label("Запустить")
                                                     .on_click({
                                                         let state_entity = state_entity.clone();

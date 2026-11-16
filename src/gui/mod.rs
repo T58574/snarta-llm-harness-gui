@@ -1,5 +1,6 @@
 pub mod anim;
 pub mod commands;
+pub mod icons;
 pub mod state;
 pub mod theme;
 pub mod views;
@@ -19,7 +20,7 @@ pub fn run_gui(paths: AppPaths, cfg: Config, logger: Logger) -> io::Result<()> {
         .with_assets(gpui_kit::assets::AllAssets)
         .run(move |cx| {
             gpui_kit::init(cx);
-            theme::apply_graphite_pink_theme(cx);
+            theme::apply_brand_theme(cx);
 
             let default_w = cfg.ui.window_width.unwrap_or(1280.0).clamp(840.0, 7680.0);
             let default_h = cfg.ui.window_height.unwrap_or(720.0).clamp(560.0, 4320.0);

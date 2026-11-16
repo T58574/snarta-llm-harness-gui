@@ -34,6 +34,7 @@ impl Workspace {
                 path: paths.personas_dir().join("default.md"),
                 system_prompt: persona::DEFAULT_PERSONA_PROMPT.to_string(),
                 description: None,
+                gender: persona::PersonaGender::Female,
             });
 
         let available_models = gguf::scan_models_dir(&paths.models_dir()).unwrap_or_default();

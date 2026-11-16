@@ -1,18 +1,17 @@
 use crate::gui::commands::COMMANDS;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_ELEVATED, COLOR_PINK_PRIMARY,
-    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BG_ELEVATED, COLOR_BORDER, COLOR_TEXT_MUTED,
+    COLOR_TEXT_PRIMARY,
 };
 use crate::vision;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
 use gpui_component::input::{Enter, Paste, Textarea, TextareaState};
-use gpui_component::{Icon, Sizable, Size, h_flex, v_flex};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
-
-const SVG_PAPERCLIP: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>"#;
 
 pub struct InputDock {
     pub textarea: Entity<TextareaState>,
@@ -84,8 +83,8 @@ impl InputDock {
         v_flex()
             .w_full()
             .border_t_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
-            .bg(COLOR_GRAPHITE_CANVAS)
+            .border_color(COLOR_BORDER)
+            .bg(COLOR_BG_CANVAS)
             .p_3()
             .gap_2()
             .children(status_notice.map(|notice| {
@@ -94,9 +93,9 @@ impl InputDock {
                     .px_2p5()
                     .py_1()
                     .rounded_md()
-                    .bg(COLOR_GRAPHITE_ELEVATED)
+                    .bg(COLOR_BG_ELEVATED)
                     .border_1()
-                    .border_color(COLOR_PINK_PRIMARY)
+                    .border_color(COLOR_ACCENT_ORANGE)
                     .items_center()
                     .justify_between()
                     .gap_2()
@@ -111,7 +110,7 @@ impl InputDock {
                         Button::new("dismiss-notice-btn")
                             .ghost()
                             .with_size(Size::XSmall)
-                            .label("✕")
+                            .icon(icons::close())
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -141,7 +140,7 @@ impl InputDock {
                                     .child(
                                         div()
                                             .font_weight(FontWeight::BOLD)
-                                            .text_color(COLOR_PINK_PRIMARY)
+                                            .text_color(COLOR_ACCENT_ORANGE)
                                             .child(cmd.name),
                                     )
                                     .child(
@@ -178,9 +177,9 @@ impl InputDock {
                             .gap_2()
                             .p_1p5()
                             .rounded_md()
-                            .bg(COLOR_GRAPHITE_ELEVATED)
+                            .bg(COLOR_BG_ELEVATED)
                             .border_1()
-                            .border_color(COLOR_GRAPHITE_BORDER)
+                            .border_color(COLOR_BORDER)
                             .text_size(rems(0.75))
                             .child(
                                 img(path.clone())
@@ -200,7 +199,7 @@ impl InputDock {
                                 Button::new(format!("remove-img-{}", idx))
                                     .ghost()
                                     .with_size(Size::XSmall)
-                                    .label("✕")
+                                    .icon(icons::close())
                                     .on_click({
                                         let state_entity = state_entity.clone();
                                         move |_, _, cx| {
@@ -223,8 +222,9 @@ impl InputDock {
                     .child(
                         Button::new("attach-image-btn")
                             .secondary()
+                            .outline()
                             .with_size(Size::Medium)
-                            .icon(Icon::default().data(SVG_PAPERCLIP))
+                            .icon(icons::paperclip())
                             .tooltip("Прикрепить изображение")
                             .on_click({
                                 let tx = self.file_pick_tx.clone();
@@ -304,7 +304,8 @@ impl InputDock {
                         Button::new("stop-btn")
                             .danger()
                             .with_size(Size::Medium)
-                            .label("Остановить")
+                            .icon(icons::square_stop())
+                            .label("Стоп")
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -318,6 +319,7 @@ impl InputDock {
                         Button::new("send-btn")
                             .primary()
                             .with_size(Size::Medium)
+                            .icon(icons::send())
                             .label("Отправить")
                             .on_click({
                                 let state_entity = state_entity.clone();

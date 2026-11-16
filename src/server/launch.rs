@@ -1,5 +1,4 @@
 use crate::log::rotate_if_needed;
-use serde::Deserialize;
 use std::io::{self, BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -8,7 +7,6 @@ use std::time::{Duration, Instant};
 use std::{fs::OpenOptions, path::Path, thread};
 
 pub const HEALTH_POLL_INTERVAL_MS: u64 = 350;
-pub const BENCH_TIMEOUT_SECS: u64 = 120;
 
 static LAST_SERVER_GEN_TPS_BITS: AtomicU64 = AtomicU64::new(0);
 
@@ -30,7 +28,6 @@ pub struct ServerTelemetry {
 pub struct ManagedServer {
     child: Child,
     pub pid: u32,
-    pub telemetry: Arc<Mutex<ServerTelemetry>>,
     #[cfg(windows)]
     job_handle: isize,
 }
@@ -97,7 +94,6 @@ impl ManagedServer {
         Ok(Self {
             child,
             pid,
-            telemetry,
             #[cfg(windows)]
             job_handle,
         })
@@ -255,65 +251,6 @@ pub fn wait_until_healthy(
         io::ErrorKind::TimedOut,
         format!("llama-server health timeout ({timeout_secs}s)"),
     ))
-}
-
-#[derive(Debug, Clone)]
-pub struct BenchMetrics {
-    pub prompt_tps: f64,
-    pub gen_tps: f64,
-}
-
-#[derive(Deserialize)]
-struct BenchResp {
-    usage: Option<BenchUsage>,
-    timings: Option<BenchTimings>,
-}
-#[derive(Deserialize)]
-struct BenchUsage {
-    #[serde(default)]
-    completion_tokens: u32,
-}
-#[derive(Deserialize)]
-struct BenchTimings {
-    #[serde(default)]
-    prompt_per_second: f64,
-    #[serde(default)]
-    predicted_per_second: f64,
-}
-
-pub fn measure_speed(
-    host: &str,
-    port: u16,
-    max_tokens: u32,
-    reasoning_effort: Option<&str>,
-) -> io::Result<BenchMetrics> {
-    let url = format!("http://{host}:{port}/v1/chat/completions");
-    let mut body = serde_json::json!({
-        "messages": [{"role": "user", "content": "Count from 1 to 60 separated by spaces."}],
-        "max_tokens": max_tokens, "temperature": 0.0, "stream": false
-    });
-    if let Some(eff) = reasoning_effort {
-        body["reasoning_effort"] = serde_json::Value::String(eff.to_string());
-    }
-    let t0 = Instant::now();
-    let mut resp = http_agent(BENCH_TIMEOUT_SECS)
-        .post(&url)
-        .send_json(&body)
-        .map_err(|e| io::Error::other(format!("bench request failed: {e}")))?;
-    let elapsed = t0.elapsed().as_secs_f64().max(0.001);
-    let p: BenchResp = resp
-        .body_mut()
-        .read_json()
-        .map_err(|e| io::Error::other(e.to_string()))?;
-    let comp = p.usage.map_or(max_tokens, |u| u.completion_tokens);
-    let (pt, gt) = match p.timings {
-        Some(t) if t.predicted_per_second > 0.0 => (t.prompt_per_second, t.predicted_per_second),
-        _ => (0.0, (comp as f64) / elapsed),
-    };
-    Ok(BenchMetrics {
-        prompt_tps: pt,
-        gen_tps: gt,
-    })
 }
 
 #[cfg(windows)]

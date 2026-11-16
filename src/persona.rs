@@ -8,12 +8,49 @@ pub const DEFAULT_PERSONA_PROMPT: &str = "\
 Отвечай по делу, без воды, канцелярита и извинений. Если нужно запомнить важный факт о собеседнике или его планах, используй инструмент remember.
 ";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PersonaGender {
+    #[default]
+    Female,
+    Male,
+}
+
+impl PersonaGender {
+    pub fn from_str_or_name(raw: Option<&str>, name: &str) -> Self {
+        if let Some(s) = raw {
+            match s.trim().to_ascii_lowercase().as_str() {
+                "male" | "m" | "man" | "boy" | "м" | "муж" | "мужской" => {
+                    return Self::Male;
+                }
+                "female" | "f" | "woman" | "girl" | "ж" | "жен" | "женский" => {
+                    return Self::Female;
+                }
+                _ => {}
+            }
+        }
+        let low = name.trim().to_ascii_lowercase();
+        if low == "agent" || low.contains("alex") || low.contains("coach") || low.contains("male") {
+            Self::Male
+        } else {
+            Self::Female
+        }
+    }
+
+    pub fn label_ru(self) -> &'static str {
+        match self {
+            Self::Female => "Женский",
+            Self::Male => "Мужской",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Persona {
     pub name: String,
     pub path: PathBuf,
     pub system_prompt: String,
     pub description: Option<String>,
+    pub gender: PersonaGender,
 }
 
 pub fn ensure_default_persona(personas_dir: &Path) -> io::Result<()> {
@@ -84,16 +121,18 @@ pub fn load_persona_file(path: &Path) -> io::Result<Persona> {
         .and_then(|s| s.to_str())
         .unwrap_or(DEFAULT_PERSONA_NAME)
         .to_string();
-    let (description, body) = split_optional_toml_frontmatter(&raw);
+    let (description, gender_raw, body) = split_optional_toml_frontmatter(&raw);
+    let gender = PersonaGender::from_str_or_name(gender_raw.as_deref(), &name);
     Ok(Persona {
         name,
         path: path.to_path_buf(),
         system_prompt: body.trim().to_string(),
         description,
+        gender,
     })
 }
 
-fn split_optional_toml_frontmatter(raw: &str) -> (Option<String>, &str) {
+fn split_optional_toml_frontmatter(raw: &str) -> (Option<String>, Option<String>, &str) {
     let trimmed = raw.trim_start_matches('\u{feff}');
     for delim in ["+++", "---"] {
         if let Some(rest) = trimmed.strip_prefix(delim)
@@ -108,13 +147,17 @@ fn split_optional_toml_frontmatter(raw: &str) -> (Option<String>, &str) {
                 .strip_prefix('\n')
                 .or_else(|| tail.strip_prefix("\r\n"))
                 .unwrap_or(tail);
-            let desc = toml::from_str::<toml::Value>(header)
-                .ok()
+            let parsed = toml::from_str::<toml::Value>(header).ok();
+            let desc = parsed
+                .as_ref()
                 .and_then(|v| v.get("description")?.as_str().map(str::to_string));
-            return (desc, body);
+            let gender = parsed
+                .as_ref()
+                .and_then(|v| v.get("gender")?.as_str().map(str::to_string));
+            return (desc, gender, body);
         }
     }
-    (None, trimmed)
+    (None, None, trimmed)
 }
 
 #[cfg(test)]
@@ -138,12 +181,18 @@ mod tests {
         let custom = dir.join("coach.md");
         fs::write(
             &custom,
-            "+++\ndescription = \"Strict coach\"\n+++\nKeep answers under 3 sentences.\n",
+            "+++\ndescription = \"Strict coach\"\ngender = \"female\"\n+++\nKeep answers under 3 sentences.\n",
         )
         .unwrap();
         let c = load_persona(&dir, "coach").unwrap();
         assert_eq!(c.description.as_deref(), Some("Strict coach"));
+        assert_eq!(c.gender, PersonaGender::Female);
         assert_eq!(c.system_prompt, "Keep answers under 3 sentences.");
+
+        let agent = dir.join("agent.md");
+        fs::write(&agent, "Work fast.\n").unwrap();
+        let a = load_persona(&dir, "agent").unwrap();
+        assert_eq!(a.gender, PersonaGender::Male);
 
         let _ = fs::remove_dir_all(&dir);
     }

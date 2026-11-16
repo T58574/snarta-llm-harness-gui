@@ -1,14 +1,16 @@
 use crate::config::Config;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_ELEVATED, COLOR_PINK_PRIMARY,
-    COLOR_TEXT_MUTED,
+    COLOR_ACCENT_GREEN, COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
+    COLOR_BG_ELEVATED_HOVER, COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use crate::sysmon::optimize::close_processes_fast;
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::checkbox::Checkbox;
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 
 pub struct PrepareModal;
 
@@ -41,23 +43,30 @@ impl PrepareModal {
         let has_candidates = !candidates.is_empty();
 
         v_flex()
-            .w(rems(36.0))
-            .p_4()
+            .w(rems(40.0))
+            .p_5()
             .rounded_xl()
-            .bg(COLOR_GRAPHITE_CANVAS)
+            .bg(COLOR_BG_CANVAS)
             .border_1()
-            .border_color(COLOR_GRAPHITE_BORDER)
+            .border_color(COLOR_BORDER)
             .shadow_lg()
-            .gap_3()
+            .gap_3p5()
             .child(
                 h_flex()
                     .justify_between()
                     .items_center()
                     .child(
-                        div()
-                            .text_size(rems(1.1))
-                            .font_weight(FontWeight::BOLD)
-                            .child("Prepare: Освобождение памяти"),
+                        h_flex()
+                            .items_center()
+                            .gap_2()
+                            .child(icons::broom().with_size(Size::Medium).text_color(COLOR_ACCENT_ORANGE))
+                            .child(
+                                div()
+                                    .text_size(rems(1.1))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Освобождение памяти"),
+                            ),
                     )
                     .child(
                         h_flex()
@@ -67,7 +76,7 @@ impl PrepareModal {
                                 Button::new("refresh-prepare-btn")
                                     .ghost()
                                     .with_size(Size::Small)
-                                    .icon(IconName::RefreshCw)
+                                    .icon(icons::refresh())
                                     .tooltip("Обновить список процессов")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -84,7 +93,7 @@ impl PrepareModal {
                                 Button::new("close-prepare")
                                     .ghost()
                                     .with_size(Size::Small)
-                                    .icon(IconName::Close)
+                                    .icon(icons::close())
                                     .tooltip("Закрыть")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -100,25 +109,35 @@ impl PrepareModal {
             )
             .child(
                 div()
-                    .text_size(rems(0.85))
+                    .text_size(rems(0.84))
                     .text_color(COLOR_TEXT_MUTED)
-                    .child("Выберите фоновые процессы для закрытия. После очистки список обновится автоматически."),
+                    .child("Отметьте фоновые процессы для закрытия. Список обновится автоматически после очистки."),
             )
             .child(
                 v_flex()
                     .id("prepare-scroll")
-                    .max_h(rems(18.0))
+                    .max_h(rems(19.0))
                     .overflow_y_scroll()
-                    .gap_1()
+                    .gap_1p5()
                     .children(if !has_candidates {
-                        vec![div()
-                            .p_4()
-                            .rounded_md()
-                            .bg(COLOR_GRAPHITE_ELEVATED)
-                            .text_size(rems(0.9))
-                            .text_color(COLOR_TEXT_MUTED)
-                            .child("Все чисто. Фоновые процессы не занимают критический объем RAM или VRAM.")
-                            .into_any_element()]
+                        vec![
+                            h_flex()
+                                .p_4()
+                                .gap_2()
+                                .items_center()
+                                .rounded_lg()
+                                .bg(COLOR_BG_ELEVATED)
+                                .border_1()
+                                .border_color(COLOR_BORDER)
+                                .child(icons::check().with_size(Size::Medium).text_color(COLOR_ACCENT_GREEN))
+                                .child(
+                                    div()
+                                        .text_size(rems(0.88))
+                                        .text_color(COLOR_TEXT_MUTED)
+                                        .child("Фоновые процессы не занимают заметный объём RAM или VRAM."),
+                                )
+                                .into_any_element(),
+                        ]
                     } else {
                         candidates
                             .iter()
@@ -135,52 +154,82 @@ impl PrepareModal {
                                     .id(format!("cand-item-{}", idx))
                                     .justify_between()
                                     .items_center()
-                                    .p_2()
-                                    .rounded_md()
-                                    .bg(COLOR_GRAPHITE_ELEVATED)
+                                    .px_3()
+                                    .py_2()
+                                    .gap_3()
+                                    .rounded_lg()
+                                    .bg(COLOR_BG_ELEVATED)
+                                    .border_1()
+                                    .border_color(if sel {
+                                        COLOR_ACCENT_ORANGE.opacity(0.45)
+                                    } else {
+                                        COLOR_BORDER
+                                    })
+                                    .hover(|s| s.bg(COLOR_BG_ELEVATED_HOVER))
                                     .cursor_pointer()
-                                    .on_click(move |_, _, cx| {
-                                        state_entity.update(cx, |s, cx| {
-                                            if let Some(item) = s.prepare_candidates.get_mut(idx) {
-                                                item.1 = !item.1;
-                                                cx.notify();
-                                            }
-                                        });
+                                    .on_click({
+                                        let state_entity = state_entity.clone();
+                                        move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                if let Some(item) =
+                                                    s.prepare_candidates.get_mut(idx)
+                                                {
+                                                    item.1 = !item.1;
+                                                    cx.notify();
+                                                }
+                                            });
+                                        }
                                     })
                                     .child(
                                         h_flex()
-                                            .gap_2()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .gap_2p5()
                                             .items_center()
                                             .child(
-                                                div()
-                                                    .px_1p5()
-                                                    .py_0p5()
-                                                    .rounded_sm()
-                                                    .bg(if sel {
-                                                        COLOR_PINK_PRIMARY
-                                                    } else {
-                                                        COLOR_GRAPHITE_BORDER
-                                                    })
-                                                    .text_color(if sel {
-                                                        COLOR_GRAPHITE_CANVAS
-                                                    } else {
-                                                        COLOR_TEXT_MUTED
-                                                    })
-                                                    .text_size(rems(0.7))
-                                                    .font_weight(FontWeight::BOLD)
-                                                    .child(if sel { "✓" } else { " " }),
+                                                Checkbox::new(format!("cand-chk-{}", idx))
+                                                    .checked(sel)
+                                                    .with_size(Size::Small)
+                                                    .on_change({
+                                                        let state_entity = state_entity.clone();
+                                                        move |next, _, cx| {
+                                                            let next_val = *next;
+                                                            state_entity.update(cx, |s, cx| {
+                                                                if let Some(item) = s.prepare_candidates.get_mut(idx) {
+                                                                    item.1 = next_val;
+                                                                    cx.notify();
+                                                                }
+                                                            });
+                                                        }
+                                                    }),
                                             )
                                             .child(
                                                 div()
+                                                    .min_w_0()
+                                                    .truncate()
                                                     .font_weight(FontWeight::SEMIBOLD)
-                                                    .child(format!("{name} ({pids_count} процессов)")),
+                                                    .text_size(rems(0.86))
+                                                    .text_color(COLOR_TEXT_PRIMARY)
+                                                    .child(name),
+                                            )
+                                            .child(
+                                                div()
+                                                    .flex_shrink_0()
+                                                    .px_1p5()
+                                                    .py_0p5()
+                                                    .rounded_sm()
+                                                    .bg(COLOR_BG_CANVAS)
+                                                    .text_size(rems(0.7))
+                                                    .text_color(COLOR_TEXT_MUTED)
+                                                    .child(format_proc_count(pids_count)),
                                             ),
                                     )
                                     .child(
                                         div()
-                                            .text_size(rems(0.8))
+                                            .flex_shrink_0()
+                                            .text_size(rems(0.78))
                                             .text_color(COLOR_TEXT_MUTED)
-                                            .child(format!("{ram} MB RAM | {vram} MB VRAM")),
+                                            .child(format!("{ram} MB RAM · {vram} MB VRAM")),
                                     )
                                     .into_any_element()
                             })
@@ -191,23 +240,25 @@ impl PrepareModal {
                 h_flex()
                     .justify_between()
                     .items_center()
-                    .pt_2()
+                    .pt_3()
                     .border_t_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .child(
                         div()
-                            .text_size(rems(0.85))
+                            .text_size(rems(0.84))
+                            .text_color(COLOR_TEXT_MUTED)
                             .child(if has_candidates {
-                                format!("Освободится: ~{total_ram_mib} MB RAM, ~{total_vram_mib} MB VRAM")
+                                format!("Освободится ~{total_ram_mib} MB RAM · ~{total_vram_mib} MB VRAM")
                             } else {
-                                "Осталось процессов: 0".to_string()
+                                "Активных целей нет".to_string()
                             }),
                     )
                     .child(if has_candidates {
                         Button::new("terminate-hogs-btn")
                             .danger()
                             .with_size(Size::Medium)
-                            .label("Освободить память")
+                            .icon(icons::trash())
+                            .label("Закрыть выбранные")
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
@@ -228,7 +279,9 @@ impl PrepareModal {
                     } else {
                         Button::new("done-prepare-btn")
                             .secondary()
+                            .outline()
                             .with_size(Size::Medium)
+                            .icon(icons::check())
                             .label("Готово")
                             .on_click({
                                 let state_entity = state_entity.clone();
@@ -242,4 +295,19 @@ impl PrepareModal {
                     }),
             )
     }
+}
+
+fn format_proc_count(n: usize) -> String {
+    let rem100 = n % 100;
+    let rem10 = n % 10;
+    let word = if (11..=14).contains(&rem100) {
+        "процессов"
+    } else if rem10 == 1 {
+        "процесс"
+    } else if (2..=4).contains(&rem10) {
+        "процесса"
+    } else {
+        "процессов"
+    };
+    format!("{n} {word}")
 }

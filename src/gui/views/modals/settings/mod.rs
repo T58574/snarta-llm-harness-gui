@@ -6,16 +6,17 @@ mod tests;
 
 use super::{DoctorModal, RuntimeModal};
 use crate::config::Config;
+use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_GRAPHITE_BORDER, COLOR_GRAPHITE_CANVAS, COLOR_GRAPHITE_SIDEBAR, COLOR_PINK_HOVER,
-    COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
 use gpui_component::input::InputState;
-use gpui_component::{IconName, Sizable, Size, h_flex, v_flex};
+use gpui_component::tab::{Tab, TabBar};
+use gpui_component::{Sizable, Size, h_flex, v_flex};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -202,12 +203,24 @@ impl SettingsModal {
             )
         };
 
+        let tab_index = match current_tab {
+            SettingsTab::General => 0,
+            SettingsTab::Models => 1,
+            SettingsTab::Server => 2,
+            SettingsTab::Runtime => 3,
+            SettingsTab::Doctor => 4,
+            SettingsTab::SearchAndTools => 5,
+            SettingsTab::Vram => 6,
+        };
+        let tabs_shared = self.shared.clone();
+        let tabs_state = state_entity.clone();
+
         v_flex()
             .flex_1()
             .w_full()
             .h_full()
             .p_6()
-            .bg(COLOR_GRAPHITE_CANVAS)
+            .bg(COLOR_BG_CANVAS)
             .gap_4()
             .child(
                 h_flex()
@@ -215,19 +228,25 @@ impl SettingsModal {
                     .items_center()
                     .pb_3()
                     .border_b_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .child(
-                        div()
-                            .text_size(rems(1.25))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(COLOR_TEXT_PRIMARY)
-                            .child("Настройки и диагностика"),
+                        h_flex()
+                            .items_center()
+                            .gap_2p5()
+                            .child(icons::settings().size(px(18.0)).text_color(COLOR_ACCENT_ORANGE))
+                            .child(
+                                div()
+                                    .text_size(rems(1.2))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Настройки и диагностика"),
+                            ),
                     )
                     .child(
                         Button::new("close-settings")
-                            .secondary()
+                            .outline()
                             .with_size(Size::Small)
-                            .icon(IconName::Close)
+                            .icon(icons::close())
                             .label("Вернуться в чат")
                             .on_click({
                                 let state_entity = state_entity.clone();
@@ -241,79 +260,44 @@ impl SettingsModal {
                     ),
             )
             .child(
-                h_flex()
-                    .gap_1p5()
-                    .p_1()
-                    .rounded_lg()
-                    .bg(COLOR_GRAPHITE_SIDEBAR)
-                    .border_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
-                    .flex_wrap()
-                    .child(Self::render_tab_btn(
-                        "tab-general",
-                        "Общие",
-                        current_tab == SettingsTab::General,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::General,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-models",
-                        "Модель и генерация",
-                        current_tab == SettingsTab::Models,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::Models,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-server",
-                        "Сервер",
-                        current_tab == SettingsTab::Server,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::Server,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-runtime",
-                        "Движок llama.cpp",
-                        current_tab == SettingsTab::Runtime,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::Runtime,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-doctor",
-                        "Диагностика и пути",
-                        current_tab == SettingsTab::Doctor,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::Doctor,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-search",
-                        "Поиск и Инструменты",
-                        current_tab == SettingsTab::SearchAndTools,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::SearchAndTools,
-                    ))
-                    .child(Self::render_tab_btn(
-                        "tab-vram",
-                        "VRAM и память",
-                        current_tab == SettingsTab::Vram,
-                        &self.shared,
-                        state_entity,
-                        SettingsTab::Vram,
-                    )),
+                TabBar::new("settings-tabs")
+                    .segmented()
+                    .with_size(Size::Small)
+                    .selected_index(tab_index)
+                    .children([
+                        Tab::new().label("Общие"),
+                        Tab::new().label("Модель"),
+                        Tab::new().label("Сервер"),
+                        Tab::new().label("Движок"),
+                        Tab::new().label("Диагностика"),
+                        Tab::new().label("Инструменты"),
+                        Tab::new().label("VRAM"),
+                    ])
+                    .on_click(move |ix, _, cx| {
+                        let next_tab = match *ix {
+                            0 => SettingsTab::General,
+                            1 => SettingsTab::Models,
+                            2 => SettingsTab::Server,
+                            3 => SettingsTab::Runtime,
+                            4 => SettingsTab::Doctor,
+                            5 => SettingsTab::SearchAndTools,
+                            6 => SettingsTab::Vram,
+                            _ => SettingsTab::General,
+                        };
+                        tabs_shared.borrow_mut().current_tab = next_tab;
+                        tabs_state.update(cx, |_, cx| {
+                            cx.notify();
+                        });
+                    }),
             )
             .child(
                 v_flex()
                     .flex_1()
                     .id("settings-tab-content")
                     .overflow_y_scroll()
-                    .max_w(rems(56.0))
-                    .p_2()
-                    .gap_3()
+                    .max_w(rems(60.0))
+                    .p_1()
+                    .gap_4()
                     .child(match current_tab {
                         SettingsTab::General => self.render_general_tab(
                             &personas,
@@ -342,11 +326,15 @@ impl SettingsModal {
                     .items_center()
                     .pt_3()
                     .border_t_1()
-                    .border_color(COLOR_GRAPHITE_BORDER)
+                    .border_color(COLOR_BORDER)
                     .child(
                         div()
                             .text_size(rems(0.85))
-                            .text_color(COLOR_PINK_HOVER)
+                            .text_color(if save_notice.is_some() {
+                                COLOR_ACCENT_ORANGE
+                            } else {
+                                COLOR_TEXT_MUTED
+                            })
                             .child(save_notice.unwrap_or_default()),
                     )
                     .child(
@@ -354,7 +342,8 @@ impl SettingsModal {
                             .gap_2()
                             .child(
                                 Button::new("cancel-settings-btn")
-                                    .secondary()
+                                    .outline()
+                                    .icon(icons::close())
                                     .label("Закрыть")
                                     .on_click({
                                         let state_entity = state_entity.clone();
@@ -369,6 +358,7 @@ impl SettingsModal {
                             .child(
                                 Button::new("save-settings-btn")
                                     .primary()
+                                    .icon(icons::check())
                                     .label("Сохранить настройки")
                                     .on_click({
                                         let modal = self.clone();
@@ -383,31 +373,5 @@ impl SettingsModal {
                             ),
                     ),
             )
-    }
-
-    fn render_tab_btn(
-        id: &'static str,
-        title: &'static str,
-        is_active: bool,
-        shared: &Rc<RefCell<SettingsState>>,
-        state_entity: &Entity<AppState>,
-        tab: SettingsTab,
-    ) -> impl IntoElement {
-        let shared = shared.clone();
-        let state_entity = state_entity.clone();
-        Button::new(id)
-            .with_variant(if is_active {
-                gpui_component::button::ButtonVariant::Primary
-            } else {
-                gpui_component::button::ButtonVariant::Ghost
-            })
-            .with_size(Size::Small)
-            .label(title)
-            .on_click(move |_, _, cx| {
-                shared.borrow_mut().current_tab = tab;
-                state_entity.update(cx, |_, cx| {
-                    cx.notify();
-                });
-            })
     }
 }

@@ -2,44 +2,45 @@
 
 **English** | [Русский](README.ru.md)
 
-A native Rust LLM harness and desktop GUI client built around `llama.cpp` (`llama-server`), engineered from the ground up to **minimize VRAM and system RAM overhead**.
+Snarta is a native Rust desktop GUI client and local agent harness for `llama.cpp` (`llama-server`). It keeps memory overhead low so weights and KV cache fit into physical VRAM.
 
-## Why Snarta
+## Why use Snarta
 
-Most local LLM GUI launchers and agent harnesses are built on Electron, WebView, or heavy Python runtimes. They consume hundreds of megabytes to gigabytes of RAM and VRAM before a model even loads, and when you push context length higher, that extra footprint triggers silent spilling of weights and KV cache into shared system memory over PCIe, severely degrading generation speed.
+Browser-based wrappers such as Electron or WebView reserve hundreds of megabytes of RAM and VRAM before loading a model. On tight GPUs, that extra footprint pushes model layers or KV cache into shared system RAM over PCIe, which cuts token speed.
 
-**Snarta** strips away those layers so the maximum possible physical memory stays available for the model and its context:
+Snarta avoids browser runtimes and Python servers in its main binary:
 
-* **Native stack with no browser engine.** A single compact Rust binary with GPU-accelerated UI rendering (`gpui` / `gpui-kit`) — no Electron, Node.js, or Python in the core runtime.
-* **Accurate VRAM & KV-cache budgeting.** Reads real physical VRAM on Windows via DXGI and PDH (`\GPU Adapter Memory(*)\Dedicated Usage`) instead of capped WMI values, calculates context fit (`fit`) with explicit shared-RAM spill reporting (`spill_mib`), and defaults to quantized KV cache (`q8_0`).
-* **Pre-launch memory reclamation (`prepare`).** Quickly closes background VRAM/RAM-heavy apps (browsers, overlays, chat clients) before loading large models.
-* **MoE & large-context tuning.** Supports `-ncmoe` CPU expert offloading and includes a benchmark suite for tuning throughput.
+- **Native GPUI interface**: Compiled Rust GUI rendered on the GPU with `gpui` and `gpui-component`.
+- **Direct VRAM telemetry on Windows**: Reads physical dedicated VRAM through DXGI and PDH counters (`\GPU Adapter Memory(*)\Dedicated Usage`) instead of the capped WMI value. Calculates context fit with explicit shared-memory spill estimates and defaults KV cache quantization to `q8_0`.
+- **Pre-launch cleanup (`Prepare`)**: Lists background apps that hold RAM and VRAM (browsers, overlays, chat clients) and closes selected processes from the GUI.
+- **MoE and long-context controls**: Supports `-ncmoe` expert offloading and per-model launch settings in `snarta.toml`.
 
 ## Features
 
-* **Desktop GUI (`gpui`):** streaming output, collapsible reasoning blocks, clipboard and file-picker image attachments for vision models, persona management, and local session persistence.
-* **Agentic loop (`AgentEngine`):** built-in tool calling with dedicated UI cards (filesystem, `edit_file`, shell execution, local search, web search/scrape, plan mode, interactive user prompts) and loop protection.
-* **Runtime management:** downloads and switches `llama.cpp` builds (ROCm for AMD gfx110X and Vulkan), builds launch flags cleanly, and supports `extra_args` and `[model_defaults]` inheritance in `snarta.toml`.
-* **Benchmarking (`bench/`):** TUI runner, MMLU/stress evaluations, and automated `-ncmoe` sweeps (see [bench/README.md](bench/README.md)).
+- **Streaming chat and reasoning**: Shows live token streaming, collapsible thinking blocks, image attachments from clipboard or file picker, session history, and persona switching (`personas/*.md`).
+- **Live ASCII persona portrait**: Displays a gender-aware ASCII face (`female` or `male` via persona frontmatter `gender`) that reacts to tool runs, thinking states, and direct model `set_emotion` calls.
+- **Built-in agent tools**: Renders structured cards for file reads/edits/writes, shell execution, local search, web search and scraping, task plans, user questions (`ask_user`), and emotion changes.
+- **Runtime manager**: Downloads and switches `llama.cpp` builds (ROCm for AMD gfx110X and Vulkan) inside the settings window.
+- **Python benchmark suite**: Measures token speed, runs `-ncmoe` sweeps, and evaluates MMLU, RuMMLU, and stress tasks under `bench/`. See [bench/README.md](bench/README.md).
 
 ## Requirements
 
-* **Target OS:** Windows x64 (primary platform for GUI, DXGI/PDH telemetry, and `llama-server.exe`).
-* **Toolchain:** Rust (`edition = "2024"`).
+- Target OS: Windows x64 (for DXGI/PDH VRAM telemetry, process cleanup, and `llama-server.exe`).
+- Toolchain: Rust (`edition = "2024"`).
 
-## Building
+## Build and verify
 
-### On Windows (MSVC, recommended for release)
+### Windows (MSVC)
 
 ```powershell
 cargo build --release
 ```
 
-The compiled binary will be at `target\release\snarta.exe`.
+The executable is written to `target\release\snarta.exe`.
 
-### Cross-compiling / checking from Linux (`mingw-w64`)
+### Linux cross-check (`mingw-w64`)
 
-`.cargo/config.toml` configures `x86_64-w64-mingw32-gcc` as the linker for `x86_64-pc-windows-gnu`:
+`.cargo/config.toml` configures `x86_64-w64-mingw32-gcc` for `x86_64-pc-windows-gnu`:
 
 ```bash
 rustup target add x86_64-pc-windows-gnu
@@ -53,36 +54,28 @@ cargo build --release --target x86_64-pc-windows-gnu
 cargo test
 ```
 
-## Usage
+## Running
 
-Running without arguments launches the desktop GUI:
+Launch the desktop application directly:
 
 ```powershell
-snarta
+snarta.exe
 ```
 
-Available CLI subcommands:
+All configuration, diagnostics, runtime installation, and memory cleanup tools live in the GUI windows (`Settings`, `Models`, `Personas`, `Prepare`). Runtime folders (`models/`, `runtime/`, `logs/`, `personas/`, `life/`) and `snarta.toml` are created next to the binary or in the active workspace.
 
-* `snarta doctor` — inspect environment, config, and runtime health.
-* `snarta prepare` — free RAM/VRAM according to `[prepare]` in `snarta.toml`.
-* `snarta runtime ...` — manage installed `llama.cpp` builds.
-* `snarta fit [model]` — calculate context fit against current free VRAM.
-* `snarta serve [model]` / `snarta stop` — start and stop `llama-server`.
-* `snarta bench [model]` — run the built-in benchmark.
-* `snarta path install` / `snarta path uninstall` — add/remove the directory containing `snarta.exe` from user `PATH`.
+## Repository layout
 
-## Repository Structure
-
-* `src/main.rs` — entry point and CLI dispatch.
-* `src/gui/` — `gpui` / `gpui-kit` UI, tool cards, modals, and state.
-* `src/chat/` — `llama-server` client, prompt builder, `AgentEngine`, sessions, and `Workspace`.
-* `src/server/` — `ServerController`, launch argument builder, and context `fit`.
-* `src/tools/` — tool registry and implementations.
-* `src/gpu.rs`, `src/sysmon/` — DXGI/PDH telemetry and process cleanup.
-* `src/runtime/` — `llama.cpp` release installer and manager.
-* `bench/` — Python benchmarking and evaluation scripts.
-* `docs/JOURNAL.md` — architecture decisions and technical lessons learned.
+- `src/main.rs`: Desktop application entry point.
+- `src/gui/`: GPUI windows, sidebar, chat view, Lucide icon wrappers, ASCII avatar, modals, and tool cards.
+- `src/chat/`: `llama-server` HTTP client, prompt builder, `AgentEngine`, session storage, and workspace loader.
+- `src/server/`: `ServerController`, launch flag builder, process lifecycle, and context fit math.
+- `src/tools/`: Agent tool registry and implementations.
+- `src/gpu.rs`, `src/sysmon/`: DXGI/PDH GPU monitoring and process cleanup helpers.
+- `src/runtime/`: `llama.cpp` release discovery and installer.
+- `bench/`: Python scripts for `-ncmoe` speed sweeps and MMLU evaluations.
+- `docs/JOURNAL.md`: Technical notes and architecture decisions.
 
 ## License
 
-MIT (see [Cargo.toml](Cargo.toml)).
+MIT. See [Cargo.toml](Cargo.toml).
