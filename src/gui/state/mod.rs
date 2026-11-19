@@ -1,10 +1,19 @@
 mod agent;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TelemetrySnapshot {
+    pub vram_total_mib: u64,
+    pub vram_used_mib: u64,
+    pub vram_spill_mib: u64,
+    pub ram_total_mib: u64,
+    pub ram_used_mib: u64,
+}
+
 pub fn measure_vram_snapshot(
     srv_pid: Option<u32>,
     spill_threshold_mib: u64,
     reserve_mib: u64,
-) -> (u64, u64, u64) {
+) -> TelemetrySnapshot {
     let gpus = gpu::detect_gpus().unwrap_or_default();
     let total = gpus
         .iter()
@@ -22,7 +31,24 @@ pub fn measure_vram_snapshot(
     } else {
         0
     };
-    (total, used, spill)
+
+    let (ram_total_mib, ram_used_mib) = if let Ok(mut sys) = sysinfo::System::new() {
+        sys.refresh_memory();
+        (
+            sys.total_memory() / (1024 * 1024),
+            sys.used_memory() / (1024 * 1024),
+        )
+    } else {
+        (0, 0)
+    };
+
+    TelemetrySnapshot {
+        vram_total_mib: total,
+        vram_used_mib: used,
+        vram_spill_mib: spill,
+        ram_total_mib,
+        ram_used_mib,
+    }
 }
 
 #[cfg(test)]
@@ -33,7 +59,6 @@ use crate::chat::session::{ToolTrace, TurnStep};
 use crate::chat::workspace::Workspace;
 use crate::config::{Config, ModelSettings};
 use crate::gpu;
-use crate::gui::anim::avatar::AvatarEmotion;
 use crate::log::Logger;
 use crate::paths::AppPaths;
 use crate::server;
@@ -56,6 +81,8 @@ pub struct VramTelemetry {
     pub used_mib: u64,
     pub total_mib: u64,
     pub spill_mib: u64,
+    pub ram_used_mib: u64,
+    pub ram_total_mib: u64,
     pub tps: f64,
     pub active_ctx: u32,
 }
@@ -71,22 +98,22 @@ pub struct AppState {
     pub streaming_tools: Vec<ToolTrace>,
     pub streaming_steps: Vec<TurnStep>,
     pub collapsed_reasoning: HashSet<String>,
+    pub expanded_turn_menus: HashSet<usize>,
     pub is_generating: bool,
     pub attached_images: Vec<PathBuf>,
     pub sidebar_open: bool,
     pub settings_open: bool,
+    pub system_menu_open: bool,
     pub active_modal: Option<ActiveModal>,
     pub prepare_candidates: Vec<(crate::sysmon::optimize::PrepareCandidate, bool)>,
     pub status_notice: Option<String>,
     pub server: ServerController,
     pub server_status: ServerStatus,
     pub needs_scroll_to_bottom: bool,
+    pub stick_to_bottom: bool,
     pub draft_tokens: Option<usize>,
     pub last_gen_tokens: Option<u32>,
     pub last_config_mtime: Option<std::time::SystemTime>,
-    pub avatar_emotion: AvatarEmotion,
-    pub avatar_thought: Option<String>,
-    pub has_explicit_emotion: bool,
 }
 
 impl Deref for AppState {
@@ -127,6 +154,8 @@ impl AppState {
                 used_mib: 0,
                 total_mib: 0,
                 spill_mib: 0,
+                ram_used_mib: 0,
+                ram_total_mib: 0,
                 tps: 0.0,
                 active_ctx: initial_ctx,
             },
@@ -136,22 +165,22 @@ impl AppState {
             streaming_tools: Vec::new(),
             streaming_steps: Vec::new(),
             collapsed_reasoning: HashSet::new(),
+            expanded_turn_menus: HashSet::new(),
             is_generating: false,
             attached_images: Vec::new(),
             sidebar_open: true,
             settings_open: false,
+            system_menu_open: false,
             active_modal: None,
             prepare_candidates: Vec::new(),
             status_notice: None,
             server,
             server_status,
             needs_scroll_to_bottom: true,
+            stick_to_bottom: true,
             draft_tokens: Some(0),
             last_gen_tokens: None,
             last_config_mtime,
-            avatar_emotion: AvatarEmotion::Neutral,
-            avatar_thought: None,
-            has_explicit_emotion: false,
         };
         state.refresh_vram();
         state.recalculate_used_ctx();
@@ -189,14 +218,16 @@ impl AppState {
             ServerStatus::Running { pid, .. } => Some(pid),
             _ => None,
         };
-        let (total, used, spill) = measure_vram_snapshot(
+        let snap = measure_vram_snapshot(
             srv_pid,
             self.cfg.vram.shared_spill_threshold_mib,
             self.cfg.vram.reserve_mib,
         );
-        self.vram.total_mib = total;
-        self.vram.used_mib = used;
-        self.vram.spill_mib = spill;
+        self.vram.total_mib = snap.vram_total_mib;
+        self.vram.used_mib = snap.vram_used_mib;
+        self.vram.spill_mib = snap.vram_spill_mib;
+        self.vram.ram_total_mib = snap.ram_total_mib;
+        self.vram.ram_used_mib = snap.ram_used_mib;
     }
 
     pub fn recalculate_used_ctx(&mut self) {
@@ -226,10 +257,9 @@ impl AppState {
             .is_ok()
         {
             self.collapsed_reasoning.clear();
+            self.expanded_turn_menus.clear();
             self.needs_scroll_to_bottom = true;
-            self.avatar_emotion = AvatarEmotion::Neutral;
-            self.avatar_thought = None;
-            self.has_explicit_emotion = false;
+            self.stick_to_bottom = true;
         }
     }
 
@@ -244,10 +274,9 @@ impl AppState {
             .is_ok()
         {
             self.collapsed_reasoning.clear();
+            self.expanded_turn_menus.clear();
             self.needs_scroll_to_bottom = true;
-            self.avatar_emotion = AvatarEmotion::Neutral;
-            self.avatar_thought = None;
-            self.has_explicit_emotion = false;
+            self.stick_to_bottom = true;
         }
     }
 
@@ -275,28 +304,35 @@ impl AppState {
         let active_ctx = self.active_server_ctx();
         self.workspace
             .switch_persona(&self.paths, &mut self.cfg, persona_name, active_ctx);
-        self.avatar_emotion = AvatarEmotion::Neutral;
-        self.avatar_thought = None;
-        self.has_explicit_emotion = false;
     }
 
-    pub fn set_persona_gender(
+    pub fn save_persona(
         &mut self,
-        persona_name: &str,
-        gender: crate::persona::PersonaGender,
-    ) {
-        if let Err(e) = self
-            .workspace
-            .set_persona_gender(&self.paths, persona_name, gender)
-        {
-            self.status_notice = Some(format!("Не удалось сохранить пол персоны: {e}"));
+        input: &crate::persona::PersonaSaveInput,
+        set_active: bool,
+    ) -> Result<crate::persona::Persona, String> {
+        match self.workspace.save_persona(&self.paths, input, set_active) {
+            Ok(p) => {
+                if set_active {
+                    let name = p.name.clone();
+                    let active_ctx = self.active_server_ctx();
+                    self.workspace
+                        .switch_persona(&self.paths, &mut self.cfg, &name, active_ctx);
+                }
+                Ok(p)
+            }
+            Err(e) => {
+                let msg = format!("Не удалось сохранить персону: {e}");
+                self.status_notice = Some(msg.clone());
+                Err(msg)
+            }
         }
     }
 
-    pub fn toggle_active_persona_gender(&mut self) {
-        let name = self.workspace.persona.name.clone();
-        let next = self.workspace.persona.gender.toggled();
-        self.set_persona_gender(&name, next);
+    pub fn toggle_turn_menu(&mut self, idx: usize) {
+        if !self.expanded_turn_menus.remove(&idx) {
+            self.expanded_turn_menus.insert(idx);
+        }
     }
 
     pub fn switch_model(&mut self, model_file: &str) {

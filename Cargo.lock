@@ -5991,6 +5991,7 @@ dependencies = [
  "globset",
  "gpui-component",
  "gpui-kit",
+ "image",
  "serde",
  "serde_json",
  "sysinfo 0.40.3",

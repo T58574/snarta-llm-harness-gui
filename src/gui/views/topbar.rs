@@ -1,13 +1,16 @@
-use crate::gui::anim::status::{apply_vram_pulse, render_server_online_dot};
+use crate::gui::anim::avatar::render_avatar_circle;
+use crate::gui::anim::status::render_server_online_dot;
 use crate::gui::icons::icons;
 use crate::gui::state::{ActiveModal, AppState, ServerStatus};
 use crate::gui::theme::{
-    COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BG_SIDEBAR, COLOR_BORDER, COLOR_TEXT_PRIMARY,
-    TOPBAR_HEIGHT, vram_status_color,
+    COLOR_ACCENT_BLUE, COLOR_ACCENT_GREEN, COLOR_ACCENT_ORANGE, COLOR_BG_ELEVATED,
+    COLOR_BORDER_GLASS, COLOR_BORDER_GLASS_STRONG, COLOR_DANGER, COLOR_GLASS_MODAL,
+    COLOR_GLASS_SURFACE, COLOR_GLASS_TOPBAR, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY, TOPBAR_HEIGHT,
+    vram_status_color,
 };
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{Sizable, Size, h_flex};
+use gpui_component::{Sizable, Size, TitleBar, h_flex, v_flex};
 
 pub struct TopBar;
 
@@ -23,7 +26,8 @@ impl TopBar {
             .as_ref()
             .map(|m| m.file_name.trim_end_matches(".gguf").to_string())
             .unwrap_or_else(|| "Модель не выбрана".to_string());
-        let persona_name = state.persona.name.clone();
+        let persona_display = state.persona.display_name.clone();
+        let persona_avatar = state.persona.avatar_path.clone();
 
         let vram_used = state.vram.used_mib;
         let vram_total = state.vram.total_mib;
@@ -31,150 +35,280 @@ impl TopBar {
         let vram_color = vram_status_color(vram_used, vram_total, vram_spill);
 
         let sidebar_open = state.sidebar_open;
+        let system_menu_open = state.system_menu_open;
+        let server_status = state.server_status.clone();
 
-        h_flex()
+        let status_dot = match &server_status {
+            ServerStatus::Running { .. } => render_server_online_dot("topbar-srv-dot").into_any_element(),
+            ServerStatus::Starting { .. } => div()
+                .w(px(7.0))
+                .h(px(7.0))
+                .rounded_full()
+                .bg(COLOR_ACCENT_ORANGE)
+                .into_any_element(),
+            ServerStatus::Error(_) => div()
+                .w(px(7.0))
+                .h(px(7.0))
+                .rounded_full()
+                .bg(COLOR_DANGER)
+                .into_any_element(),
+            ServerStatus::Stopped => div()
+                .w(px(7.0))
+                .h(px(7.0))
+                .rounded_full()
+                .bg(COLOR_TEXT_MUTED.opacity(0.6))
+                .into_any_element(),
+        };
+
+        let vram_total_gb = (vram_total + 512) / 1024;
+        let vram_used_gb = vram_used as f64 / 1024.0;
+
+        TitleBar::new()
             .h(TOPBAR_HEIGHT)
-            .w_full()
-            .items_center()
-            .justify_between()
-            .px_3()
+            .bg(COLOR_GLASS_TOPBAR)
             .border_b_1()
-            .border_color(COLOR_BORDER)
-            .bg(COLOR_BG_SIDEBAR)
+            .border_color(COLOR_BORDER_GLASS)
             .child(
                 h_flex()
+                    .w_full()
                     .items_center()
-                    .gap_2()
-                    .min_w_0()
+                    .justify_between()
+                    .pr_2()
                     .child(
-                        Button::new("toggle-sidebar")
-                            .ghost()
-                            .with_size(Size::Small)
-                            .icon(if sidebar_open {
-                                icons::sidebar_close()
-                            } else {
-                                icons::sidebar_open()
-                            })
-                            .tooltip(if sidebar_open {
-                                "Скрыть боковую панель"
-                            } else {
-                                "Показать боковую панель"
-                            })
-                            .on_click({
-                                let state_entity = state_entity.clone();
-                                move |_, _, cx| {
-                                    state_entity.update(cx, |s, cx| {
-                                        s.sidebar_open = !s.sidebar_open;
-                                        cx.notify();
-                                    });
-                                }
-                            }),
+                        h_flex()
+                            .items_center()
+                            .gap_2()
+                            .min_w_0()
+                            .child(
+                                Button::new("toggle-sidebar")
+                                    .ghost()
+                                    .with_size(Size::Small)
+                                    .icon(if sidebar_open {
+                                        icons::sidebar_close()
+                                    } else {
+                                        icons::sidebar_open()
+                                    })
+                                    .tooltip(if sidebar_open {
+                                        "Скрыть боковую панель"
+                                    } else {
+                                        "Показать боковую панель"
+                                    })
+                                    .on_click({
+                                        let state_entity = state_entity.clone();
+                                        move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                s.sidebar_open = !s.sidebar_open;
+                                                cx.notify();
+                                            });
+                                        }
+                                    }),
+                            )
+                            .child(
+                                h_flex()
+                                    .items_center()
+                                    .gap_1p5()
+                                    .px_1()
+                                    .child(
+                                        div()
+                                            .w(px(8.0))
+                                            .h(px(8.0))
+                                            .rounded_full()
+                                            .bg(COLOR_ACCENT_ORANGE),
+                                    )
+                                    .child(
+                                        div()
+                                            .font_weight(FontWeight::BOLD)
+                                            .text_size(rems(0.92))
+                                            .text_color(COLOR_TEXT_PRIMARY)
+                                            .child("Snarta"),
+                                    ),
+                            )
+                            .child(
+                                Button::new("model-selector")
+                                    .ghost()
+                                    .with_size(Size::Small)
+                                    .icon(icons::cpu())
+                                    .label(model_name)
+                                    .tooltip("Выбор и статус локальной модели GGUF")
+                                    .on_click({
+                                        let state_entity = state_entity.clone();
+                                        move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                s.system_menu_open = false;
+                                                s.open_modal(ActiveModal::Models);
+                                                cx.notify();
+                                            });
+                                        }
+                                    }),
+                            )
+                            .child(
+                                Button::new("persona-selector")
+                                    .ghost()
+                                    .with_size(Size::Small)
+                                    .tooltip("Персоны и аватар")
+                                    .child(
+                                        h_flex()
+                                            .items_center()
+                                            .gap_1p5()
+                                            .child(render_avatar_circle(
+                                                &persona_display,
+                                                persona_avatar.as_deref(),
+                                                18.0,
+                                            ))
+                                            .child(persona_display),
+                                    )
+                                    .on_click({
+                                        let state_entity = state_entity.clone();
+                                        move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                s.system_menu_open = false;
+                                                s.open_modal(ActiveModal::Personas);
+                                                cx.notify();
+                                            });
+                                        }
+                                    }),
+                            ),
                     )
                     .child(
                         h_flex()
                             .items_center()
                             .gap_1p5()
-                            .px_1p5()
+                            .flex_shrink_0()
                             .child(
-                                div()
-                                    .w(px(8.0))
-                                    .h(px(8.0))
-                                    .rounded_full()
-                                    .bg(COLOR_ACCENT_ORANGE),
-                            )
-                            .child(
-                                div()
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_size(rems(0.95))
-                                    .text_color(COLOR_TEXT_PRIMARY)
-                                    .child("Snarta"),
+                                Button::new("system-menu-toggle")
+                                    .ghost()
+                                    .with_size(Size::Small)
+                                    .bg(if system_menu_open {
+                                        COLOR_BG_ELEVATED
+                                    } else {
+                                        COLOR_GLASS_SURFACE
+                                    })
+                                    .border_1()
+                                    .border_color(if system_menu_open {
+                                        COLOR_BORDER_GLASS_STRONG
+                                    } else {
+                                        COLOR_BORDER_GLASS
+                                    })
+                                    .tooltip("Сервер, очистка памяти, VRAM и ОЗУ")
+                                    .child(
+                                        h_flex()
+                                            .items_center()
+                                            .gap_1p5()
+                                            .child(status_dot)
+                                            .child(
+                                                div()
+                                                    .text_size(rems(0.76))
+                                                    .text_color(COLOR_TEXT_PRIMARY)
+                                                    .child(format!(
+                                                        "Система · {vram_used_gb:.1}/{vram_total_gb}G"
+                                                    )),
+                                            )
+                                            .child(
+                                                div()
+                                                    .w(px(6.0))
+                                                    .h(px(6.0))
+                                                    .rounded_full()
+                                                    .bg(vram_color),
+                                            )
+                                            .child(if system_menu_open {
+                                                icons::chevron_down().with_size(Size::XSmall)
+                                            } else {
+                                                icons::chevron_right().with_size(Size::XSmall)
+                                            }),
+                                    )
+                                    .on_click({
+                                        let state_entity = state_entity.clone();
+                                        move |_, _, cx| {
+                                            state_entity.update(cx, |s, cx| {
+                                                s.system_menu_open = !s.system_menu_open;
+                                                cx.notify();
+                                            });
+                                        }
+                                    }),
                             ),
-                    )
-                    .child(
-                        Button::new("model-selector")
-                            .secondary()
-                            .outline()
-                            .with_size(Size::Small)
-                            .icon(icons::cpu())
-                            .label(model_name)
-                            .tooltip("Выбор и статус локальной модели GGUF")
-                            .on_click({
-                                let state_entity = state_entity.clone();
-                                move |_, _, cx| {
-                                    state_entity.update(cx, |s, cx| {
-                                        s.open_modal(ActiveModal::Models);
-                                        cx.notify();
-                                    });
-                                }
-                            }),
-                    )
-                    .child(
-                        Button::new("persona-selector")
-                            .secondary()
-                            .outline()
-                            .with_size(Size::Small)
-                            .icon(icons::user())
-                            .label(persona_name)
-                            .tooltip("Выбор персоны собеседника")
-                            .on_click({
-                                let state_entity = state_entity.clone();
-                                move |_, _, cx| {
-                                    state_entity.update(cx, |s, cx| {
-                                        s.open_modal(ActiveModal::Personas);
-                                        cx.notify();
-                                    });
-                                }
-                            }),
                     ),
             )
+    }
+
+    /// Floating glassmorphic dropdown menu for Server control, Memory cleanup, VRAM & RAM.
+    pub fn render_system_menu_popover(
+        state_entity: &Entity<AppState>,
+        cx_state: &AppState,
+    ) -> impl IntoElement {
+        let vram_used = cx_state.vram.used_mib;
+        let vram_total = cx_state.vram.total_mib;
+        let vram_spill = cx_state.vram.spill_mib;
+        let vram_color = vram_status_color(vram_used, vram_total, vram_spill);
+        let vram_pct = if vram_total > 0 {
+            (vram_used as f32 / vram_total as f32).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+
+        let ram_used = cx_state.vram.ram_used_mib;
+        let ram_total = cx_state.vram.ram_total_mib;
+        let ram_used_gb = ram_used as f64 / 1024.0;
+        let ram_total_gb = ram_total as f64 / 1024.0;
+        let ram_pct = if ram_total > 0 {
+            (ram_used as f32 / ram_total as f32).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+
+        let server_status = cx_state.server_status.clone();
+
+        v_flex()
+            .id("system-menu-popover")
+            .w(px(300.0))
+            .p_3p5()
+            .rounded_2xl()
+            .bg(COLOR_GLASS_MODAL)
+            .border_1()
+            .border_color(COLOR_BORDER_GLASS_STRONG)
+            .shadow_xl()
+            .gap_3()
+            .on_mouse_down(MouseButton::Left, |_, _, cx| {
+                cx.stop_propagation();
+            })
             .child(
-                h_flex()
-                    .items_center()
+                v_flex()
                     .gap_2()
-                    .flex_shrink_0()
                     .child(
-                        Button::new("prepare-modal-btn")
-                            .secondary()
-                            .outline()
-                            .with_size(Size::Small)
-                            .icon(icons::broom())
-                            .label("Очистить память")
-                            .tooltip("Закрыть фоновые процессы, занимающие RAM и VRAM")
-                            .on_click({
-                                let state_entity = state_entity.clone();
-                                move |_, _, cx| {
-                                    state_entity.update(cx, |s, cx| {
-                                        s.open_modal(ActiveModal::Prepare);
-                                        cx.notify();
-                                    });
-                                }
-                            }),
+                        div()
+                            .text_size(rems(0.74))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(COLOR_TEXT_MUTED)
+                            .child("Управление сервером"),
                     )
-                    .child(match &state.server_status {
-                        ServerStatus::Running { pid, port, .. } => Button::new("server-status-btn")
+                    .child(match &server_status {
+                        ServerStatus::Running { pid, port, .. } => Button::new("menu-srv-stop")
                             .secondary()
                             .outline()
+                            .w_full()
                             .with_size(Size::Small)
-                            .tooltip(format!("Нажмите, чтобы остановить сервер (PID {pid})"))
+                            .tooltip(format!("PID {pid}"))
                             .child(
                                 h_flex()
                                     .items_center()
-                                    .gap_1p5()
-                                    .child(render_server_online_dot("server-online-dot"))
-                                    .child(format!("Сервер · :{port}")),
+                                    .justify_center()
+                                    .gap_2()
+                                    .child(render_server_online_dot("menu-online-dot"))
+                                    .child(format!("Остановить сервер (:{port})")),
                             )
                             .on_click({
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
                                     state_entity.update(cx, |s, cx| {
                                         s.stop_server();
+                                        s.system_menu_open = false;
                                         cx.notify();
                                     });
                                 }
                             })
                             .into_any_element(),
-                        ServerStatus::Stopped => Button::new("server-status-btn")
+                        ServerStatus::Stopped => Button::new("menu-srv-start")
                             .primary()
+                            .w_full()
                             .with_size(Size::Small)
                             .icon(icons::play())
                             .label("Запустить сервер")
@@ -182,33 +316,35 @@ impl TopBar {
                                 let state_entity = state_entity.clone();
                                 move |_, _, cx| {
                                     state_entity.update(cx, |s, cx| {
+                                        s.system_menu_open = false;
                                         if let Some(ref m) = s.active_model_meta {
                                             let fname = m.file_name.clone();
                                             let settings = s.settings_for(&fname);
                                             s.start_server_for_model(&fname, settings.ctx);
-                                            cx.notify();
                                         } else {
                                             s.open_modal(ActiveModal::Models);
-                                            cx.notify();
                                         }
+                                        cx.notify();
                                     });
                                 }
                             })
                             .into_any_element(),
-                        ServerStatus::Starting { .. } => Button::new("server-status-btn")
+                        ServerStatus::Starting { .. } => Button::new("menu-srv-starting")
                             .secondary()
                             .outline()
+                            .w_full()
                             .with_size(Size::Small)
                             .loading(true)
-                            .label("Запуск...")
+                            .label("Запуск сервера...")
                             .into_any_element(),
                         ServerStatus::Error(err) => {
                             let err_msg = err.clone();
-                            Button::new("server-status-btn")
+                            Button::new("menu-srv-err")
                                 .danger()
+                                .w_full()
                                 .with_size(Size::Small)
                                 .icon(icons::alert())
-                                .label("Ошибка сервера")
+                                .label("Сбросить ошибку сервера")
                                 .tooltip(err_msg.clone())
                                 .on_click({
                                     let state_entity = state_entity.clone();
@@ -217,6 +353,7 @@ impl TopBar {
                                             s.status_notice =
                                                 Some(format!("Ошибка сервера: {err_msg}"));
                                             s.server_status = ServerStatus::Stopped;
+                                            s.system_menu_open = false;
                                             cx.notify();
                                         });
                                     }
@@ -224,24 +361,111 @@ impl TopBar {
                                 .into_any_element()
                         }
                     })
-                    .child({
-                        let is_vram_danger = vram_spill > 0
-                            || (vram_total > 0 && vram_used * 10 >= vram_total * 9);
-                        let vram_badge = h_flex()
-                            .items_center()
-                            .gap_1p5()
-                            .px_2p5()
-                            .py_1()
-                            .rounded_md()
-                            .bg(COLOR_BG_CANVAS)
-                            .border_1()
-                            .border_color(vram_color.opacity(0.65))
-                            .text_size(rems(0.75))
-                            .text_color(COLOR_TEXT_PRIMARY)
-                            .child(icons::memory().with_size(Size::XSmall).text_color(vram_color))
-                            .child(format_vram_display(vram_used, vram_total, vram_spill));
-                        apply_vram_pulse(vram_badge, is_vram_danger, vram_color)
-                    }),
+                    .child(
+                        Button::new("menu-prepare-btn")
+                            .secondary()
+                            .outline()
+                            .w_full()
+                            .with_size(Size::Small)
+                            .icon(icons::broom())
+                            .label("Очистить память")
+                            .on_click({
+                                let state_entity = state_entity.clone();
+                                move |_, _, cx| {
+                                    state_entity.update(cx, |s, cx| {
+                                        s.system_menu_open = false;
+                                        s.open_modal(ActiveModal::Prepare);
+                                        cx.notify();
+                                    });
+                                }
+                            }),
+                    ),
+            )
+            .child(div().h(px(1.0)).w_full().bg(COLOR_BORDER_GLASS))
+            .child(
+                v_flex()
+                    .gap_2()
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                h_flex()
+                                    .justify_between()
+                                    .text_size(rems(0.76))
+                                    .child(
+                                        div()
+                                            .text_color(COLOR_TEXT_MUTED)
+                                            .child("Видеопамять (VRAM)"),
+                                    )
+                                    .child(
+                                        div()
+                                            .font_weight(FontWeight::SEMIBOLD)
+                                            .text_color(vram_color)
+                                            .child(
+                                                format_vram_display(
+                                                    vram_used,
+                                                    vram_total,
+                                                    vram_spill,
+                                                )
+                                                .replace("VRAM ", ""),
+                                            ),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .w_full()
+                                    .h(px(5.0))
+                                    .rounded_full()
+                                    .bg(COLOR_GLASS_SURFACE)
+                                    .overflow_hidden()
+                                    .child(
+                                        div()
+                                            .h_full()
+                                            .w(relative(vram_pct))
+                                            .rounded_full()
+                                            .bg(vram_color),
+                                    ),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                h_flex()
+                                    .justify_between()
+                                    .text_size(rems(0.76))
+                                    .child(div().text_color(COLOR_TEXT_MUTED).child("ОЗУ (RAM)"))
+                                    .child(
+                                        div()
+                                            .font_weight(FontWeight::SEMIBOLD)
+                                            .text_color(COLOR_ACCENT_BLUE)
+                                            .child(if ram_total > 0 {
+                                                format!("{ram_used_gb:.1} / {ram_total_gb:.0} GB")
+                                            } else {
+                                                "—".to_string()
+                                            }),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .w_full()
+                                    .h(px(5.0))
+                                    .rounded_full()
+                                    .bg(COLOR_GLASS_SURFACE)
+                                    .overflow_hidden()
+                                    .child(
+                                        div()
+                                            .h_full()
+                                            .w(relative(ram_pct))
+                                            .rounded_full()
+                                            .bg(if ram_pct > 0.88 {
+                                                COLOR_ACCENT_ORANGE
+                                            } else {
+                                                COLOR_ACCENT_GREEN
+                                            }),
+                                    ),
+                            ),
+                    ),
             )
     }
 }
@@ -260,9 +484,7 @@ pub fn format_compact_ctx(val: u32) -> String {
     }
 }
 
-/// Formats VRAM metrics for topbar display:
-/// Total VRAM is rounded to the nearest whole gigabyte (e.g. RX 7800 XT with ~16368 MiB correctly displays as 16 GB).
-/// Used VRAM is displayed with 1 decimal place precision (e.g. 0.0/16 GB).
+/// Formats VRAM metrics for display.
 pub fn format_vram_display(used_mib: u64, total_mib: u64, spill_mib: u64) -> String {
     let total_gb = (total_mib + 512) / 1024;
     let used_gb = used_mib as f64 / 1024.0;

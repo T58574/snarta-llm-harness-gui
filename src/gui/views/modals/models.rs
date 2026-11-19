@@ -3,7 +3,8 @@ use crate::gui::state::{AppState, ServerStatus};
 use crate::gui::theme::{
     COLOR_ACCENT_BLUE, COLOR_ACCENT_BLUE_MUTED, COLOR_ACCENT_GREEN, COLOR_ACCENT_GREEN_MUTED,
     COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
-    COLOR_BG_ELEVATED_HOVER, COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
+    COLOR_BG_ELEVATED_HOVER, COLOR_BORDER, COLOR_BORDER_GLASS_STRONG, COLOR_GLASS_MODAL,
+    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use gpui::InteractiveElement as _;
 use gpui::*;
@@ -35,11 +36,11 @@ impl ModelsModal {
         v_flex()
             .w(rems(46.0))
             .p_5()
-            .rounded_xl()
-            .bg(COLOR_BG_CANVAS)
+            .rounded_2xl()
+            .bg(COLOR_GLASS_MODAL)
             .border_1()
-            .border_color(COLOR_BORDER)
-            .shadow_lg()
+            .border_color(COLOR_BORDER_GLASS_STRONG)
+            .shadow_2xl()
             .gap_3p5()
             .child(
                 h_flex()

@@ -19,6 +19,7 @@ toml = "1.2.1"
 ureq = { version = "3.5.2", default-features = false, features = ["rustls", "json"] }
 zip = { version = "9.6.0", default-features = false, features = ["deflate"] }
 globset = "0.4.21"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp", "gif"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = [

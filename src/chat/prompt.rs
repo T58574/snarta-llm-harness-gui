@@ -146,7 +146,6 @@ pub fn build_system_prompt(
           * `glob_files` — glob file search (e.g. `**/*.rs`), returns paths, line counts, sizes.\n\
           * `grep_files` — fast text search via ripgrep.\n\
           * `read_file` — read specific lines.\n\
-        - Live ASCII expression (`set_emotion`): you have a live ASCII portrait in the app HUD. Call `set_emotion` naturally when your mood or situation shifts (`happy`, `thinking`, `focused`, `curious`, `surprised`, `skeptical`, `playful`, `proud`, `warm`, `alert`, `neutral`) with an optional short 2-5 word `thought` note matching the dialogue context.\n\
         - On Windows `exec` runs directly inside native PowerShell (`powershell.exe`). Do not wrap commands with `powershell -Command ...`; use `;` instead of `&&`.",
         now_str,
         cwd.display()

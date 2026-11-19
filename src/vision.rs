@@ -286,6 +286,34 @@ pub fn pick_image_file_dialog() -> Option<PathBuf> {
 
 #[cfg(not(windows))]
 pub fn pick_image_file_dialog() -> Option<PathBuf> {
+    if let Ok(out) = std::process::Command::new("zenity")
+        .args([
+            "--file-selection",
+            "--title=Выберите изображение",
+            "--file-filter=Images | *.png *.jpg *.jpeg *.webp *.bmp *.gif",
+        ])
+        .output()
+        && out.status.success()
+    {
+        let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !p.is_empty() {
+            return Some(PathBuf::from(p));
+        }
+    }
+    if let Ok(out) = std::process::Command::new("kdialog")
+        .args([
+            "--getopenfilename",
+            ".",
+            "*.png *.jpg *.jpeg *.webp *.bmp *.gif|Images",
+        ])
+        .output()
+        && out.status.success()
+    {
+        let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !p.is_empty() {
+            return Some(PathBuf::from(p));
+        }
+    }
     None
 }
 

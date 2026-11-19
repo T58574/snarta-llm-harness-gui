@@ -3,8 +3,8 @@ use super::input::InputDock;
 use super::modals::{ModelsModal, PersonasModal, PrepareModal, RuntimeModal, SettingsModal};
 use super::sidebar::Sidebar;
 use super::topbar::TopBar;
-use crate::gui::state::{ActiveModal, AppState, ServerStatus};
-use crate::gui::theme::{COLOR_BG_CANVAS, COLOR_BG_SIDEBAR, COLOR_TEXT_PRIMARY};
+use crate::gui::state::{ActiveModal, AppState, ServerStatus, TelemetrySnapshot};
+use crate::gui::theme::{COLOR_BG_CANVAS, COLOR_BG_SIDEBAR, COLOR_TEXT_PRIMARY, TOPBAR_HEIGHT};
 use gpui::*;
 use gpui_component::{h_flex, v_flex};
 use std::time::Duration;
@@ -15,6 +15,7 @@ pub struct MainWindow {
     pub prepare_modal: PrepareModal,
     pub runtime_modal: RuntimeModal,
     pub settings_modal: SettingsModal,
+    pub personas_modal: PersonasModal,
     pub prev_settings_open: bool,
     pub needs_settings_sync: bool,
     pub focus_handle: FocusHandle,
@@ -28,6 +29,7 @@ impl MainWindow {
         let prepare_modal = PrepareModal::new(&cfg);
         let runtime_modal = RuntimeModal::new(&state.read(cx).paths);
         let settings_modal = SettingsModal::new(&cfg, window, cx);
+        let personas_modal = PersonasModal::new(window, cx);
         let focus_handle = cx.focus_handle();
         focus_handle.focus(window, cx);
 
@@ -91,9 +93,9 @@ impl MainWindow {
             }
         });
 
-        // Background channel & worker for non-blocking VRAM / spill telemetry
+        // Background channel & worker for non-blocking VRAM / RAM / spill telemetry
         let (vram_req_tx, vram_req_rx) = std::sync::mpsc::channel::<(Option<u32>, u64, u64)>();
-        let (vram_res_tx, vram_res_rx) = std::sync::mpsc::channel::<(u64, u64, u64)>();
+        let (vram_res_tx, vram_res_rx) = std::sync::mpsc::channel::<TelemetrySnapshot>();
         std::thread::spawn(move || {
             while let Ok((mut srv_pid, mut spill_thresh, mut reserve_mib)) = vram_req_rx.recv() {
                 while let Ok((p, t, r)) = vram_req_rx.try_recv() {
@@ -169,15 +171,19 @@ impl MainWindow {
                     }
                     was_server_running = is_running_now;
 
-                    while let Ok((total, used, spill)) = vram_res_rx.try_recv() {
+                    while let Ok(snap) = vram_res_rx.try_recv() {
                         state_clone.update(cx, |s, _| {
-                            if s.vram.total_mib != total
-                                || s.vram.used_mib != used
-                                || s.vram.spill_mib != spill
+                            if s.vram.total_mib != snap.vram_total_mib
+                                || s.vram.used_mib != snap.vram_used_mib
+                                || s.vram.spill_mib != snap.vram_spill_mib
+                                || s.vram.ram_total_mib != snap.ram_total_mib
+                                || s.vram.ram_used_mib != snap.ram_used_mib
                             {
-                                s.vram.total_mib = total;
-                                s.vram.used_mib = used;
-                                s.vram.spill_mib = spill;
+                                s.vram.total_mib = snap.vram_total_mib;
+                                s.vram.used_mib = snap.vram_used_mib;
+                                s.vram.spill_mib = snap.vram_spill_mib;
+                                s.vram.ram_total_mib = snap.ram_total_mib;
+                                s.vram.ram_used_mib = snap.ram_used_mib;
                                 updated = true;
                             }
                         });
@@ -214,12 +220,20 @@ impl MainWindow {
                     let is_near_bottom = {
                         let offset = this_view.chat_scroll_handle.offset();
                         let max_offset = this_view.chat_scroll_handle.max_offset();
-                        (max_offset.y + offset.y) <= px(64.0)
+                        (max_offset.y + offset.y) <= px(80.0)
                     };
+
+                    if this_view.personas_modal.poll_file_picker() {
+                        updated = true;
+                    }
 
                     state_clone.update(cx, |state, _cx| {
                         if this_view.input_dock.poll_file_picker(state) {
                             updated = true;
+                        }
+
+                        if !state.is_generating && !state.needs_scroll_to_bottom {
+                            state.stick_to_bottom = is_near_bottom;
                         }
 
                         let prev_status = state.server_status.clone();
@@ -232,18 +246,6 @@ impl MainWindow {
                             updated = true;
                         }
                     });
-
-                    let should_scroll = state_clone.update(cx, |s, _| {
-                        if s.needs_scroll_to_bottom {
-                            s.needs_scroll_to_bottom = false;
-                            true
-                        } else {
-                            false
-                        }
-                    });
-                    if should_scroll {
-                        this_view.chat_scroll_handle.scroll_to_bottom();
-                    }
 
                     if updated {
                         cx.notify();
@@ -264,6 +266,7 @@ impl MainWindow {
             prepare_modal,
             runtime_modal,
             settings_modal,
+            personas_modal,
             prev_settings_open: false,
             needs_settings_sync: false,
             focus_handle,
@@ -277,6 +280,30 @@ impl Render for MainWindow {
         let active_modal = self.state.read(cx).active_modal;
         let sidebar_open = self.state.read(cx).sidebar_open;
         let settings_open = self.state.read(cx).settings_open;
+        let system_menu_open = self.state.read(cx).system_menu_open;
+        let backdrop_img = {
+            let st = self.state.read(cx);
+            st.persona
+                .avatar_bg_path
+                .clone()
+                .or_else(|| st.persona.avatar_path.clone())
+                .filter(|p| p.is_file())
+        };
+
+        let should_scroll = self.state.update(cx, |s, _| {
+            if s.needs_scroll_to_bottom {
+                s.needs_scroll_to_bottom = false;
+                true
+            } else {
+                false
+            }
+        });
+        if should_scroll {
+            let sh = self.chat_scroll_handle.clone();
+            window.on_next_frame(move |_, _| {
+                sh.scroll_to_bottom();
+            });
+        }
 
         if settings_open && (!self.prev_settings_open || self.needs_settings_sync) {
             let (cfg_snap, models_snap) = self.state.update(cx, |s, _| {
@@ -296,19 +323,41 @@ impl Render for MainWindow {
         let state_for_keys = self.state.clone();
 
         v_flex()
+            .relative()
             .track_focus(&focus_handle)
             .size_full()
             .bg(COLOR_BG_CANVAS)
             .text_color(COLOR_TEXT_PRIMARY)
+            .children(backdrop_img.map(|bg_path| {
+                div()
+                    .absolute()
+                    .inset_0()
+                    .overflow_hidden()
+                    .child(
+                        img(bg_path)
+                            .w_full()
+                            .h_full()
+                            .object_fit(ObjectFit::Cover)
+                            .opacity(0.32),
+                    )
+                    .child(div().absolute().inset_0().bg(COLOR_BG_CANVAS.opacity(0.62)))
+            }))
             .capture_key_down(move |event, _window, cx| {
                 let key = event.keystroke.key.as_str();
                 if key.eq_ignore_ascii_case("escape") || key.eq_ignore_ascii_case("esc") {
                     let has_modal = state_for_keys.read(cx).active_modal.is_some();
                     let is_settings = state_for_keys.read(cx).settings_open;
+                    let is_sys_menu = state_for_keys.read(cx).system_menu_open;
                     if has_modal {
                         cx.stop_propagation();
                         state_for_keys.update(cx, |s, cx| {
                             s.active_modal = None;
+                            cx.notify();
+                        });
+                    } else if is_sys_menu {
+                        cx.stop_propagation();
+                        state_for_keys.update(cx, |s, cx| {
+                            s.system_menu_open = false;
                             cx.notify();
                         });
                     } else if is_settings {
@@ -406,11 +455,37 @@ impl Render for MainWindow {
                                 ActiveModal::Models => {
                                     ModelsModal::render(&self.state, window, cx).into_any_element()
                                 }
-                                ActiveModal::Personas => {
-                                    PersonasModal::render(&self.state, window, cx)
-                                        .into_any_element()
-                                }
+                                ActiveModal::Personas => self
+                                    .personas_modal
+                                    .render(&self.state, window, cx)
+                                    .into_any_element(),
                             }),
+                    )
+            }))
+            .children(system_menu_open.then(|| {
+                let popover = {
+                    let st_snap = self.state.read(cx);
+                    TopBar::render_system_menu_popover(&self.state, st_snap)
+                };
+                div()
+                    .id("system-menu-backdrop")
+                    .absolute()
+                    .inset_0()
+                    .on_mouse_down(MouseButton::Left, {
+                        let state_entity = self.state.clone();
+                        move |_, _, cx| {
+                            state_entity.update(cx, |s, cx| {
+                                s.system_menu_open = false;
+                                cx.notify();
+                            });
+                        }
+                    })
+                    .child(
+                        div()
+                            .absolute()
+                            .top(TOPBAR_HEIGHT + px(6.0))
+                            .right(px(110.0))
+                            .child(popover),
                     )
             }))
     }

@@ -1,5 +1,5 @@
 use crate::chat::session::{ChatTurn, TurnStep};
-use crate::gui::anim::avatar::render_hero_avatar;
+use crate::gui::anim::avatar::{render_avatar_circle, render_hero_avatar};
 use crate::gui::anim::presence::{
     apply_streaming_glow, render_breathing_cursor, render_thinking_dots,
 };
@@ -7,10 +7,12 @@ use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
     COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_SELECTION, COLOR_BG_CANVAS, COLOR_BG_ELEVATED,
-    COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_ON_ACCENT, COLOR_TEXT_PRIMARY, COLOR_TEXT_SUBTLE,
+    COLOR_BORDER, COLOR_BORDER_GLASS, COLOR_GLASS_SURFACE, COLOR_GLASS_SURFACE_USER,
+    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY, COLOR_TEXT_SUBTLE,
 };
 use crate::gui::views::tools::render_tool_traces;
 use crate::gui::views::topbar::format_compact_ctx;
+use crate::persona::Persona;
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
@@ -36,10 +38,8 @@ impl ChatView {
         let streaming_steps = state.streaming_steps.clone();
         let used_ctx = state.used_ctx;
         let active_ctx = state.vram.active_ctx;
-        let persona_name = state.persona.name.clone();
-        let persona_gender = state.persona.gender;
-        let avatar_emotion = state.avatar_emotion;
-        let avatar_thought = state.avatar_thought.clone();
+        let persona = state.persona.clone();
+        let expanded_menus = state.expanded_turn_menus.clone();
 
         v_flex()
             .id("chat-scroll")
@@ -47,16 +47,20 @@ impl ChatView {
             .flex_1()
             .h_full()
             .overflow_y_scroll()
-            .p_5()
+            .px_6()
+            .py_5()
             .gap_4()
             .children(turns.into_iter().enumerate().map(|(idx, turn)| {
                 let is_last = idx + 1 == turns_len && !is_generating;
+                let menu_open = expanded_menus.contains(&idx);
                 Self::render_turn(
                     idx,
                     &turn,
                     is_last,
+                    menu_open,
                     used_ctx,
                     active_ctx,
+                    &persona,
                     state_entity,
                     window,
                     cx,
@@ -66,8 +70,7 @@ impl ChatView {
                 div()
                     .child(Self::render_streaming(
                         &streaming_steps,
-                        used_ctx,
-                        active_ctx,
+                        &persona,
                         state_entity,
                         window,
                         cx,
@@ -79,14 +82,7 @@ impl ChatView {
                     .items_center()
                     .justify_center()
                     .py_12()
-                    .child(render_hero_avatar(
-                        &persona_name,
-                        persona_gender,
-                        avatar_emotion,
-                        avatar_thought.as_deref(),
-                        state_entity,
-                        cx,
-                    ))
+                    .child(render_hero_avatar(&persona, state_entity))
                     .into_any_element()
             } else {
                 div().into_any_element()
@@ -98,8 +94,10 @@ impl ChatView {
         idx: usize,
         turn: &ChatTurn,
         is_last: bool,
+        menu_open: bool,
         used_ctx: u32,
         active_ctx: u32,
+        persona: &Persona,
         state_entity: &Entity<AppState>,
         window: &mut Window,
         cx: &mut App,
@@ -119,11 +117,14 @@ impl ChatView {
                 .justify_end()
                 .child(
                     v_flex()
-                        .max_w(rems(45.0))
-                        .p_3p5()
-                        .rounded_xl()
-                        .bg(COLOR_ACCENT_ORANGE)
-                        .text_color(COLOR_TEXT_ON_ACCENT)
+                        .max_w(rems(42.0))
+                        .px_4()
+                        .py_3()
+                        .rounded_2xl()
+                        .bg(COLOR_GLASS_SURFACE_USER)
+                        .border_1()
+                        .border_color(COLOR_BORDER_GLASS)
+                        .text_color(COLOR_TEXT_PRIMARY)
                         .gap_2()
                         .children(images.into_iter().map(|img_path| {
                             let path_buf = PathBuf::from(&img_path);
@@ -134,8 +135,8 @@ impl ChatView {
                                 .to_string();
                             v_flex()
                                 .p_1p5()
-                                .rounded_md()
-                                .bg(COLOR_BG_CANVAS.opacity(0.25))
+                                .rounded_lg()
+                                .bg(COLOR_BG_CANVAS.opacity(0.35))
                                 .gap_1()
                                 .child(
                                     img(path_buf)
@@ -147,6 +148,7 @@ impl ChatView {
                                 .child(
                                     div()
                                         .text_size(rems(0.72))
+                                        .text_color(COLOR_TEXT_MUTED)
                                         .child(fname),
                                 )
                         }))
@@ -159,19 +161,36 @@ impl ChatView {
                         .child(
                             h_flex()
                                 .justify_end()
-                                .pt_1()
-                                .child(
+                                .items_center()
+                                .gap_2()
+                                .children(menu_open.then(|| {
                                     Button::new(format!("copy-user-{}", idx))
                                         .ghost()
                                         .with_size(Size::XSmall)
                                         .icon(icons::copy())
                                         .label("Копировать")
                                         .on_click({
-                                            let copy_text = content;
+                                            let copy_text = content.clone();
                                             move |_, _window, cx| {
                                                 cx.write_to_clipboard(ClipboardItem::new_string(
                                                     copy_text.clone(),
                                                 ));
+                                            }
+                                        })
+                                }))
+                                .child(
+                                    Button::new(format!("menu-user-{}", idx))
+                                        .ghost()
+                                        .with_size(Size::XSmall)
+                                        .label("•••")
+                                        .tooltip("Действия")
+                                        .on_click({
+                                            let state_entity = state_entity.clone();
+                                            move |_, _, cx| {
+                                                state_entity.update(cx, |s, cx| {
+                                                    s.toggle_turn_menu(idx);
+                                                    cx.notify();
+                                                });
                                             }
                                         }),
                                 ),
@@ -227,18 +246,60 @@ impl ChatView {
                 parts.join(" · ")
             };
 
-            h_flex()
+            v_flex()
                 .w_full()
-                .justify_start()
+                .items_start()
+                .gap_1p5()
+                .child(
+                    h_flex()
+                        .w_full()
+                        .max_w(rems(52.0))
+                        .items_center()
+                        .justify_between()
+                        .px_1()
+                        .child(
+                            h_flex()
+                                .items_center()
+                                .gap_2()
+                                .child(render_avatar_circle(
+                                    &persona.display_name,
+                                    persona.avatar_path.as_deref(),
+                                    26.0,
+                                ))
+                                .child(
+                                    div()
+                                        .text_size(rems(0.82))
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(COLOR_TEXT_SUBTLE)
+                                        .child(persona.display_name.clone()),
+                                ),
+                        )
+                        .child(
+                            Button::new(format!("menu-turn-{}", idx))
+                                .ghost()
+                                .with_size(Size::XSmall)
+                                .label("•••")
+                                .tooltip("Технические данные и копирование")
+                                .on_click({
+                                    let state_entity = state_entity.clone();
+                                    move |_, _, cx| {
+                                        state_entity.update(cx, |s, cx| {
+                                            s.toggle_turn_menu(idx);
+                                            cx.notify();
+                                        });
+                                    }
+                                }),
+                        ),
+                )
                 .child(
                     v_flex()
                         .max_w(rems(52.0))
                         .w_full()
-                        .p_4()
-                        .rounded_xl()
-                        .bg(COLOR_BG_ELEVATED)
+                        .p_5()
+                        .rounded_2xl()
+                        .bg(COLOR_GLASS_SURFACE)
                         .border_1()
-                        .border_color(COLOR_BORDER)
+                        .border_color(COLOR_BORDER_GLASS)
                         .gap_3()
                         .children(steps.into_iter().enumerate().map(|(step_idx, step)| {
                             Self::render_step(
@@ -250,16 +311,20 @@ impl ChatView {
                                 cx,
                             )
                         }))
-                        .child(
+                        .children(menu_open.then(|| {
                             h_flex()
                                 .items_center()
                                 .justify_between()
-                                .pt_2()
+                                .pt_2p5()
                                 .border_t_1()
-                                .border_color(COLOR_BORDER)
-                                .text_size(rems(0.75))
+                                .border_color(COLOR_BORDER_GLASS)
+                                .text_size(rems(0.74))
                                 .text_color(COLOR_TEXT_MUTED)
-                                .child(footer_stats)
+                                .child(if footer_stats.is_empty() {
+                                    "Нет метрик".to_string()
+                                } else {
+                                    footer_stats
+                                })
                                 .child(
                                     Button::new(format!("copy-turn-{}", idx))
                                         .ghost()
@@ -274,8 +339,8 @@ impl ChatView {
                                                 ));
                                             }
                                         }),
-                                ),
-                        ),
+                                )
+                        })),
                 )
                 .into_any_element()
         }
@@ -396,8 +461,7 @@ impl ChatView {
 
     fn render_streaming(
         steps: &[TurnStep],
-        used_ctx: u32,
-        active_ctx: u32,
+        persona: &Persona,
         state_entity: &Entity<AppState>,
         window: &mut Window,
         cx: &mut App,
@@ -412,21 +476,14 @@ impl ChatView {
             })
             .collect();
 
-        let tps = state_entity.read(cx).vram.tps;
-        let ctx_pct = if active_ctx > 0 {
-            (used_ctx as f32 / active_ctx as f32) * 100.0
-        } else {
-            0.0
-        };
-
         let card = v_flex()
             .max_w(rems(52.0))
             .w_full()
-            .p_4()
-            .rounded_xl()
-            .bg(COLOR_BG_ELEVATED)
+            .p_5()
+            .rounded_2xl()
+            .bg(COLOR_GLASS_SURFACE)
             .border_1()
-            .border_color(COLOR_ACCENT_ORANGE)
+            .border_color(COLOR_ACCENT_ORANGE.opacity(0.65))
             .gap_3()
             .children(if non_empty_steps.is_empty() {
                 vec![
@@ -437,7 +494,7 @@ impl ChatView {
                             div()
                                 .text_size(rems(0.85))
                                 .text_color(COLOR_TEXT_MUTED)
-                                .child("Генерация ответа..."),
+                                .child("Печатает..."),
                         )
                         .child(render_breathing_cursor("streaming-cursor-pre"))
                         .into_any_element(),
@@ -459,40 +516,33 @@ impl ChatView {
                         )
                     })
                     .collect()
-            })
+            });
+
+        v_flex()
+            .w_full()
+            .items_start()
+            .gap_1p5()
             .child(
                 h_flex()
                     .items_center()
-                    .justify_between()
-                    .pt_2()
-                    .border_t_1()
-                    .border_color(COLOR_BORDER)
-                    .text_size(rems(0.75))
-                    .text_color(COLOR_TEXT_MUTED)
+                    .gap_2()
+                    .px_1()
+                    .child(render_avatar_circle(
+                        &persona.display_name,
+                        persona.avatar_path.as_deref(),
+                        26.0,
+                    ))
                     .child(
-                        h_flex()
-                            .items_center()
-                            .gap_2()
-                            .child(render_breathing_cursor("streaming-footer-cursor"))
-                            .child(if tps > 0.0 && active_ctx > 0 {
-                                format!(
-                                    "{tps:.1} t/s · Контекст: {}/{} ({ctx_pct:.0}%)",
-                                    format_compact_ctx(used_ctx),
-                                    format_compact_ctx(active_ctx),
-                                )
-                            } else if active_ctx > 0 {
-                                format!(
-                                    "Контекст: {}/{} ({ctx_pct:.0}%)",
-                                    format_compact_ctx(used_ctx),
-                                    format_compact_ctx(active_ctx),
-                                )
-                            } else {
-                                String::new()
-                            }),
-                    ),
-            );
-
-        apply_streaming_glow(card, "streaming-card-glow", true)
+                        div()
+                            .text_size(rems(0.82))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(COLOR_TEXT_SUBTLE)
+                            .child(persona.display_name.clone()),
+                    )
+                    .child(render_breathing_cursor("streaming-header-cursor")),
+            )
+            .child(apply_streaming_glow(card, "streaming-card-glow", true))
+            .into_any_element()
     }
 }
 
@@ -591,11 +641,11 @@ fn assistant_markdown_style() -> TextViewStyle {
 
 fn user_markdown_style() -> TextViewStyle {
     TextViewStyle::default()
-        .with_foreground(COLOR_TEXT_ON_ACCENT)
-        .with_muted_foreground(COLOR_TEXT_ON_ACCENT.opacity(0.85))
-        .with_link(COLOR_BG_CANVAS)
-        .with_selection(COLOR_BG_CANVAS.opacity(0.5))
-        .with_code_background(COLOR_BG_CANVAS.opacity(0.25))
-        .with_border(COLOR_BORDER.opacity(0.3))
+        .with_foreground(COLOR_TEXT_PRIMARY)
+        .with_muted_foreground(COLOR_TEXT_MUTED)
+        .with_link(COLOR_ACCENT_ORANGE)
+        .with_selection(COLOR_ACCENT_ORANGE_SELECTION)
+        .with_code_background(COLOR_BG_CANVAS.opacity(0.45))
+        .with_border(COLOR_BORDER_GLASS)
         .with_dark(true)
 }

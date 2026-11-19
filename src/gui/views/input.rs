@@ -2,8 +2,8 @@ use crate::gui::commands::COMMANDS;
 use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_ACCENT_ORANGE, COLOR_BG_CANVAS, COLOR_BG_ELEVATED, COLOR_BORDER, COLOR_TEXT_MUTED,
-    COLOR_TEXT_PRIMARY,
+    COLOR_ACCENT_ORANGE, COLOR_BG_ELEVATED, COLOR_BORDER, COLOR_BORDER_GLASS, COLOR_GLASS_INPUT,
+    COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY,
 };
 use crate::vision;
 use gpui::*;
@@ -82,10 +82,9 @@ impl InputDock {
 
         v_flex()
             .w_full()
-            .border_t_1()
-            .border_color(COLOR_BORDER)
-            .bg(COLOR_BG_CANVAS)
-            .p_3()
+            .px_6()
+            .pb_4()
+            .pt_2()
             .gap_2()
             .children(status_notice.map(|notice| {
                 h_flex()
@@ -219,12 +218,16 @@ impl InputDock {
                     .w_full()
                     .items_center()
                     .gap_2()
+                    .p_2()
+                    .rounded_2xl()
+                    .bg(COLOR_GLASS_INPUT)
+                    .border_1()
+                    .border_color(COLOR_BORDER_GLASS)
                     .child(
                         Button::new("attach-image-btn")
-                            .secondary()
-                            .outline()
+                            .ghost()
                             .with_size(Size::Medium)
-                            .icon(icons::paperclip())
+                            .icon(icons::plus())
                             .tooltip("Прикрепить изображение")
                             .on_click({
                                 let tx = self.file_pick_tx.clone();
@@ -298,7 +301,7 @@ impl InputDock {
                                     }
                                 }
                             })
-                            .child(Textarea::new(&self.textarea).bordered(true)),
+                            .child(Textarea::new(&self.textarea).bordered(false)),
                     )
                     .child(if is_generating {
                         Button::new("stop-btn")

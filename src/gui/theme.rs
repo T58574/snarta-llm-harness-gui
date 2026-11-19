@@ -20,6 +20,16 @@ pub const COLOR_BG_INPUT: Hsla = hsla(50.0 / 360.0, 0.03, 0.095, 1.0);
 pub const COLOR_BORDER: Hsla = hsla(48.0 / 360.0, 0.05, 0.20, 1.0);
 pub const COLOR_BORDER_SUBTLE: Hsla = hsla(48.0 / 360.0, 0.04, 0.15, 1.0);
 
+/// Glassmorphism tokens.
+pub const COLOR_GLASS_SURFACE: Hsla = hsla(220.0 / 360.0, 0.14, 0.12, 0.64);
+pub const COLOR_GLASS_SURFACE_USER: Hsla = hsla(220.0 / 360.0, 0.16, 0.18, 0.74);
+pub const COLOR_GLASS_SIDEBAR: Hsla = hsla(220.0 / 360.0, 0.14, 0.08, 0.80);
+pub const COLOR_GLASS_TOPBAR: Hsla = hsla(220.0 / 360.0, 0.14, 0.08, 0.76);
+pub const COLOR_GLASS_INPUT: Hsla = hsla(220.0 / 360.0, 0.14, 0.11, 0.76);
+pub const COLOR_GLASS_MODAL: Hsla = hsla(220.0 / 360.0, 0.14, 0.10, 0.92);
+pub const COLOR_BORDER_GLASS: Hsla = hsla(0.0, 0.0, 1.0, 0.12);
+pub const COLOR_BORDER_GLASS_STRONG: Hsla = hsla(0.0, 0.0, 1.0, 0.22);
+
 /// Primary accent: Brand Orange (#d97757).
 pub const COLOR_ACCENT_ORANGE: Hsla = hsla(15.0 / 360.0, 0.63, 0.60, 1.0); // #d97757
 pub const COLOR_ACCENT_ORANGE_HOVER: Hsla = hsla(15.0 / 360.0, 0.70, 0.66, 1.0);

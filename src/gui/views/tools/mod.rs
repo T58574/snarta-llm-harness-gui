@@ -1,5 +1,4 @@
 pub mod ask_user;
-pub mod emotion;
 pub mod fs;
 pub mod plan;
 pub mod search;
@@ -24,7 +23,6 @@ pub fn render_tool_trace(
 ) -> AnyElement {
     match trace.name.as_str() {
         "ask_user" => ask_user::render_ask_user(trace, is_streaming, state_entity, window, cx),
-        "set_emotion" => emotion::render_emotion_card(trace, state_entity, cx),
         "plan_mode" => plan::render_plan_mode(trace, is_streaming),
         "task_create" | "task_update" | "task_list" => plan::render_task_card(trace, is_streaming),
         "read_file" | "write_file" | "edit_file" | "delete_file" | "remember" | "write_note" => {

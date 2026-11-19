@@ -93,7 +93,6 @@ pub struct ToolOutcome {
     pub mem_added: Option<String>,
     pub new_cwd: Option<PathBuf>,
     pub viewed_image: Option<PathBuf>,
-    pub emotion_changed: Option<(String, Option<String>)>,
 }
 
 #[derive(Debug, Default)]

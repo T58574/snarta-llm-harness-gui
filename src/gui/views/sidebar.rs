@@ -2,8 +2,8 @@ use crate::gui::anim::avatar::render_sidebar_avatar;
 use crate::gui::icons::icons;
 use crate::gui::state::AppState;
 use crate::gui::theme::{
-    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_ELEVATED, COLOR_BG_SIDEBAR,
-    COLOR_BORDER, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY, SIDEBAR_WIDTH,
+    COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BORDER_GLASS, COLOR_GLASS_SIDEBAR,
+    COLOR_GLASS_SURFACE, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY, SIDEBAR_WIDTH,
 };
 use gpui::InteractiveElement as _;
 use gpui::*;
@@ -22,29 +22,18 @@ impl Sidebar {
         let active_path = state.session.path.clone();
         let sessions = state.sessions_list.clone();
         let settings_open = state.settings_open;
-        let persona_name = state.persona.name.clone();
-        let persona_gender = state.persona.gender;
-        let avatar_emotion = state.avatar_emotion;
-        let avatar_thought = state.avatar_thought.clone();
+        let persona = state.persona.clone();
         let is_generating = state.is_generating;
 
         v_flex()
             .w(SIDEBAR_WIDTH)
             .h_full()
             .border_r_1()
-            .border_color(COLOR_BORDER)
-            .bg(COLOR_BG_SIDEBAR)
+            .border_color(COLOR_BORDER_GLASS)
+            .bg(COLOR_GLASS_SIDEBAR)
             .p_2p5()
             .gap_2p5()
-            .child(render_sidebar_avatar(
-                &persona_name,
-                persona_gender,
-                avatar_emotion,
-                avatar_thought.as_deref(),
-                is_generating,
-                state_entity,
-                cx,
-            ))
+            .child(render_sidebar_avatar(&persona, is_generating, state_entity))
             .child(
                 Button::new("new-session-btn")
                     .primary()
@@ -114,9 +103,9 @@ impl Sidebar {
                                     .bg(if is_active {
                                         COLOR_ACCENT_ORANGE_MUTED
                                     } else {
-                                        COLOR_BG_SIDEBAR
+                                        hsla(0.0, 0.0, 0.0, 0.0)
                                     })
-                                    .hover(|s| s.bg(COLOR_BG_ELEVATED))
+                                    .hover(|s| s.bg(COLOR_GLASS_SURFACE))
                                     .children(is_active.then(|| {
                                         div()
                                             .w(px(3.0))
@@ -199,7 +188,7 @@ impl Sidebar {
                     .pt_2()
                     .gap_1()
                     .border_t_1()
-                    .border_color(COLOR_BORDER)
+                    .border_color(COLOR_BORDER_GLASS)
                     .child(
                         Button::new("sidebar-settings-btn")
                             .with_variant(if settings_open {

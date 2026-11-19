@@ -31,10 +31,15 @@ impl Workspace {
             .or_else(|_| persona::load_persona(&paths.personas_dir(), "default"))
             .unwrap_or_else(|_| Persona {
                 name: persona::DEFAULT_PERSONA_NAME.to_string(),
+                display_name: persona::DEFAULT_PERSONA_NAME.to_string(),
                 path: paths.personas_dir().join("default.md"),
                 system_prompt: persona::DEFAULT_PERSONA_PROMPT.to_string(),
                 description: None,
-                gender: persona::PersonaGender::Female,
+                age: None,
+                character: None,
+                modifiers: None,
+                avatar_path: None,
+                avatar_bg_path: None,
             });
 
         let available_models = gguf::scan_models_dir(&paths.models_dir()).unwrap_or_default();
@@ -209,14 +214,14 @@ impl Workspace {
         }
     }
 
-    /// Persists the ASCII avatar gender for a persona and refreshes in-memory state.
-    pub fn set_persona_gender(
+    /// Saves or updates a structured persona (`persona_<Name>.md`) and refreshes in-memory state.
+    pub fn save_persona(
         &mut self,
         paths: &AppPaths,
-        persona_name: &str,
-        gender: persona::PersonaGender,
-    ) -> io::Result<()> {
-        let updated = persona::set_persona_gender(&paths.personas_dir(), persona_name, gender)?;
+        input: &persona::PersonaSaveInput,
+        set_active: bool,
+    ) -> io::Result<persona::Persona> {
+        let updated = persona::save_structured_persona(&paths.personas_dir(), input)?;
         if let Some(slot) = self
             .available_personas
             .iter_mut()
@@ -225,11 +230,13 @@ impl Workspace {
             *slot = updated.clone();
         } else {
             self.available_personas.push(updated.clone());
+            self.available_personas
+                .sort_by(|a, b| a.display_name.cmp(&b.display_name));
         }
-        if self.persona.name.eq_ignore_ascii_case(&updated.name) {
-            self.persona = updated;
+        if set_active || self.persona.name.eq_ignore_ascii_case(&updated.name) {
+            self.persona = updated.clone();
         }
-        Ok(())
+        Ok(updated)
     }
 
     /// Selects a new active model file, persisting it to configuration.

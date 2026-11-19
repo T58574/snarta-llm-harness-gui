@@ -50,10 +50,6 @@ pub enum AgentEvent {
     },
     MemoryNotice(String),
     CwdChanged(PathBuf),
-    EmotionChanged {
-        emotion: String,
-        thought: Option<String>,
-    },
     TurnComplete {
         turn: ChatTurn,
         gen_tps: f64,
@@ -418,10 +414,6 @@ fn run_agent_loop(
             if let Some(new_cwd) = out.new_cwd {
                 config.cwd = new_cwd.clone();
                 let _ = tx.send(AgentEvent::CwdChanged(new_cwd));
-            }
-
-            if let Some((emotion, thought)) = out.emotion_changed {
-                let _ = tx.send(AgentEvent::EmotionChanged { emotion, thought });
             }
 
             if let Some(img_path) = out.viewed_image {

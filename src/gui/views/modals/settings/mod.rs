@@ -220,7 +220,7 @@ impl SettingsModal {
             .w_full()
             .h_full()
             .p_6()
-            .bg(COLOR_BG_CANVAS)
+            .bg(COLOR_BG_CANVAS.opacity(0.82))
             .gap_4()
             .child(
                 h_flex()

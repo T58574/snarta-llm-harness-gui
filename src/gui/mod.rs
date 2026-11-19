@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::log::Logger;
 use crate::paths::AppPaths;
 use gpui::*;
+use gpui_component::TitleBar;
 use state::AppState;
 use std::io;
 use views::MainWindow;
@@ -41,11 +42,7 @@ pub fn run_gui(paths: AppPaths, cfg: Config, logger: Logger) -> io::Result<()> {
             let window_options = WindowOptions {
                 window_bounds: Some(window_bounds),
                 window_min_size: Some(size(px(840.0), px(560.0))),
-                titlebar: Some(TitlebarOptions {
-                    title: Some("Snarta".into()),
-                    ..Default::default()
-                }),
-                ..Default::default()
+                ..TitleBar::window_options()
             };
 
             let paths_clone = paths.clone();
