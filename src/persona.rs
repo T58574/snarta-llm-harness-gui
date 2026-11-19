@@ -1,7 +1,11 @@
+use gpui::{Image as GpuiImage, ImageFormat as GpuiImageFormat};
+use image::DynamicImage;
 use image::imageops::FilterType;
 use std::fs;
-use std::io;
+use std::io::{self, Cursor};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const DEFAULT_PERSONA_NAME: &str = "default";
 pub const DEFAULT_PERSONA_PROMPT: &str = "\
@@ -21,6 +25,58 @@ pub struct Persona {
     pub modifiers: Option<String>,
     pub avatar_path: Option<PathBuf>,
     pub avatar_bg_path: Option<PathBuf>,
+    pub avatar_image: Option<Arc<GpuiImage>>,
+    pub avatar_bg_image: Option<Arc<GpuiImage>>,
+}
+
+/// Loads raw PNG bytes from disk into an in-memory `Arc<gpui::Image>` (content-hashed by GPUI,
+/// bypassing path-based caching).
+pub fn load_gpui_png(path: &Path) -> Option<Arc<GpuiImage>> {
+    let bytes = fs::read(path).ok()?;
+    if bytes.is_empty() {
+        return None;
+    }
+    Some(Arc::new(GpuiImage::from_bytes(GpuiImageFormat::Png, bytes)))
+}
+
+/// Decodes an image file by inspecting its magic bytes (`with_guessed_format`) rather than
+/// trusting its file extension, so `.jpg` files containing WebP/PNG bytes (or vice versa) load cleanly.
+pub fn decode_image_any(path: &Path) -> io::Result<DynamicImage> {
+    let bytes = fs::read(path).map_err(|e| {
+        io::Error::new(
+            e.kind(),
+            format!("Не удалось прочитать файл {}: {e}", path.display()),
+        )
+    })?;
+    if bytes.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Файл изображения пуст (0 байт)",
+        ));
+    }
+
+    if let Ok(reader) = image::ImageReader::new(Cursor::new(&bytes)).with_guessed_format()
+        && let Ok(img) = reader.decode()
+    {
+        return Ok(img);
+    }
+
+    image::load_from_memory(&bytes)
+        .or_else(|_| image::open(path))
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Не удалось декодировать изображение: {e}"),
+            )
+        })
+}
+
+/// Encodes a `DynamicImage` into an in-memory PNG `Arc<gpui::Image>` for live preview without disk cache issues.
+pub fn dynamic_image_to_gpui_png(img: &DynamicImage) -> io::Result<Arc<GpuiImage>> {
+    let mut buf = Vec::new();
+    img.write_to(&mut Cursor::new(&mut buf), image::ImageFormat::Png)
+        .map_err(|e| io::Error::other(format!("Ошибка кодирования PNG: {e}")))?;
+    Ok(Arc::new(GpuiImage::from_bytes(GpuiImageFormat::Png, buf)))
 }
 
 pub fn ensure_default_persona(personas_dir: &Path) -> io::Result<()> {
@@ -98,7 +154,10 @@ pub fn load_persona_file(path: &Path) -> io::Result<Persona> {
         .unwrap_or(DEFAULT_PERSONA_NAME)
         .to_string();
     let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
-    let (meta, body) = split_optional_toml_frontmatter(&raw);
+
+    // Strip optional legacy TOML frontmatter if present, then also parse unified Markdown fields.
+    let (mut meta, body_after_fm) = split_optional_toml_frontmatter(&raw);
+    let cleaned_body = parse_markdown_persona_fields(body_after_fm, &mut meta);
 
     let fallback_display = file_stem
         .strip_prefix("persona_")
@@ -122,17 +181,25 @@ pub fn load_persona_file(path: &Path) -> io::Result<Persona> {
         full.is_file().then_some(full)
     };
 
+    let avatar_path = resolve_rel(meta.avatar);
+    let avatar_bg_path = resolve_rel(meta.avatar_bg);
+    let avatar_image = avatar_path.as_deref().and_then(load_gpui_png);
+    let avatar_bg_image = avatar_bg_path.as_deref().and_then(load_gpui_png);
+    let description = meta.character.clone().or(meta.description);
+
     Ok(Persona {
         name: file_stem,
         display_name,
         path: path.to_path_buf(),
-        system_prompt: body.trim().to_string(),
-        description: meta.description,
+        system_prompt: cleaned_body,
+        description,
         age: meta.age,
         character: meta.character,
         modifiers: meta.modifiers,
-        avatar_path: resolve_rel(meta.avatar),
-        avatar_bg_path: resolve_rel(meta.avatar_bg),
+        avatar_path,
+        avatar_bg_path,
+        avatar_image,
+        avatar_bg_image,
     })
 }
 
@@ -185,6 +252,99 @@ fn split_optional_toml_frontmatter(raw: &str) -> (FrontmatterMeta, &str) {
     (FrontmatterMeta::default(), trimmed)
 }
 
+/// Parses structured Markdown persona fields (`# Персона: ...`, `- Имя: ...`, `- Возраст: ...`,
+/// `- Характер: ...`, `- Аватар: ...`, `- Фон: ...`, `## Модификаторы...`) and returns a clean
+/// system prompt for the LLM without technical avatar path lines.
+fn parse_markdown_persona_fields(body: &str, meta: &mut FrontmatterMeta) -> String {
+    let mut prompt_lines = Vec::new();
+    let mut in_modifiers_section = false;
+    let mut modifiers_lines = Vec::new();
+    let mut has_structured_header = false;
+
+    for line in body.lines() {
+        let trimmed = line.trim();
+        if let Some(h) = trimmed.strip_prefix("# Персона:") {
+            has_structured_header = true;
+            let val = h.trim();
+            if !val.is_empty() && meta.name.is_none() {
+                meta.name = Some(val.to_string());
+            }
+            prompt_lines.push(line);
+            continue;
+        }
+        if trimmed.starts_with("## Модификаторы") {
+            has_structured_header = true;
+            in_modifiers_section = true;
+            prompt_lines.push(line);
+            continue;
+        }
+        if in_modifiers_section {
+            modifiers_lines.push(line);
+            prompt_lines.push(line);
+            continue;
+        }
+        if let Some(v) = trimmed.strip_prefix("- Имя:") {
+            has_structured_header = true;
+            let val = v.trim();
+            if !val.is_empty() {
+                meta.name = Some(val.to_string());
+            }
+            prompt_lines.push(line);
+            continue;
+        }
+        if let Some(v) = trimmed.strip_prefix("- Возраст:") {
+            has_structured_header = true;
+            let val = v.trim();
+            if !val.is_empty() {
+                meta.age = Some(val.to_string());
+            }
+            prompt_lines.push(line);
+            continue;
+        }
+        if let Some(v) = trimmed.strip_prefix("- Характер:") {
+            has_structured_header = true;
+            let val = v.trim();
+            if !val.is_empty() {
+                meta.character = Some(val.to_string());
+            }
+            prompt_lines.push(line);
+            continue;
+        }
+        if let Some(v) = trimmed.strip_prefix("- Аватар:") {
+            has_structured_header = true;
+            let val = v.trim();
+            if !val.is_empty() {
+                meta.avatar = Some(val.to_string());
+            }
+            // Do not include technical file paths in the LLM system prompt
+            continue;
+        }
+        if let Some(v) = trimmed.strip_prefix("- Фон:") {
+            has_structured_header = true;
+            let val = v.trim();
+            if !val.is_empty() {
+                meta.avatar_bg = Some(val.to_string());
+            }
+            continue;
+        }
+        prompt_lines.push(line);
+    }
+
+    if !modifiers_lines.is_empty() {
+        let joined = modifiers_lines.join("\n").trim().to_string();
+        if !joined.is_empty() {
+            meta.modifiers = Some(joined);
+        }
+    } else if !has_structured_header && meta.modifiers.is_none() {
+        let plain = body.trim();
+        if !plain.is_empty() {
+            meta.modifiers = Some(plain.to_string());
+        }
+    }
+
+    prompt_lines.join("\n").trim().to_string()
+}
+
 pub fn sanitize_persona_slug(display_name: &str) -> String {
     let mut slug = String::new();
     for ch in display_name.trim().chars() {
@@ -202,11 +362,14 @@ pub fn sanitize_persona_slug(display_name: &str) -> String {
     }
 }
 
+/// Formats the persona into a single unified Markdown file (no duplicate TOML frontmatter).
 pub fn format_persona_markdown(
     display_name: &str,
     age: &str,
     character: &str,
     modifiers: &str,
+    avatar_rel: Option<&str>,
+    avatar_bg_rel: Option<&str>,
 ) -> String {
     let mut out = format!("# Персона: {}\n", display_name.trim());
     out.push_str(&format!("- Имя: {}\n", display_name.trim()));
@@ -215,6 +378,12 @@ pub fn format_persona_markdown(
     }
     if !character.trim().is_empty() {
         out.push_str(&format!("- Характер: {}\n", character.trim()));
+    }
+    if let Some(av) = avatar_rel.map(str::trim).filter(|s| !s.is_empty()) {
+        out.push_str(&format!("- Аватар: {av}\n"));
+    }
+    if let Some(bg) = avatar_bg_rel.map(str::trim).filter(|s| !s.is_empty()) {
+        out.push_str(&format!("- Фон: {bg}\n"));
     }
     if !modifiers.trim().is_empty() {
         out.push_str("\n## Модификаторы и стиль общения\n");
@@ -235,7 +404,7 @@ pub struct PersonaSaveInput {
     pub avatar_bg_rel: Option<String>,
 }
 
-/// Saves a structured persona in unified `persona_<Name>.md` format (or updates an existing file).
+/// Saves a structured persona in unified `persona_<Name>.md` Markdown format without duplicate frontmatter.
 pub fn save_structured_persona(personas_dir: &Path, input: &PersonaSaveInput) -> io::Result<Persona> {
     fs::create_dir_all(personas_dir)?;
     let display = input.display_name.trim();
@@ -254,46 +423,46 @@ pub fn save_structured_persona(personas_dir: &Path, input: &PersonaSaveInput) ->
     };
     let target_path = personas_dir.join(format!("{target_stem}.md"));
 
-    let mut table = toml::Table::new();
-    table.insert("name".into(), toml::Value::String(display.to_string()));
-    if !input.age.trim().is_empty() {
-        table.insert(
-            "age".into(),
-            toml::Value::String(input.age.trim().to_string()),
-        );
-    }
-    if !input.character.trim().is_empty() {
-        table.insert(
-            "character".into(),
-            toml::Value::String(input.character.trim().to_string()),
-        );
-        table.insert(
-            "description".into(),
-            toml::Value::String(input.character.trim().to_string()),
-        );
-    }
-    if !input.modifiers.trim().is_empty() {
-        table.insert(
-            "modifiers".into(),
-            toml::Value::String(input.modifiers.trim().to_string()),
-        );
-    }
-    if let Some(av) = input.avatar_rel.as_deref().filter(|s| !s.trim().is_empty()) {
-        table.insert("avatar".into(), toml::Value::String(av.to_string()));
-    }
-    if let Some(bg) = input.avatar_bg_rel.as_deref().filter(|s| !s.trim().is_empty()) {
-        table.insert("avatar_bg".into(), toml::Value::String(bg.to_string()));
+    // If user removed the avatar, clean up old avatar files for this slug.
+    if input.avatar_rel.is_none() {
+        cleanup_old_avatars(&personas_dir.join("avatars"), &slug, None, None);
     }
 
-    let frontmatter = toml::to_string(&table).map_err(io::Error::other)?;
-    let body = format_persona_markdown(display, &input.age, &input.character, &input.modifiers);
-    let full = format!("+++\n{frontmatter}+++\n{body}");
-    fs::write(&target_path, full)?;
+    let full_markdown = format_persona_markdown(
+        display,
+        &input.age,
+        &input.character,
+        &input.modifiers,
+        input.avatar_rel.as_deref(),
+        input.avatar_bg_rel.as_deref(),
+    );
+    fs::write(&target_path, full_markdown)?;
     load_persona_file(&target_path)
 }
 
+fn cleanup_old_avatars(
+    avatars_dir: &Path,
+    safe_slug: &str,
+    keep_av: Option<&str>,
+    keep_bg: Option<&str>,
+) {
+    let prefix = format!("persona_{safe_slug}");
+    if let Ok(entries) = fs::read_dir(avatars_dir) {
+        for entry in entries.flatten() {
+            if let Some(fname) = entry.file_name().to_str()
+                && fname.starts_with(&prefix)
+                && Some(fname) != keep_av
+                && Some(fname) != keep_bg
+            {
+                let _ = fs::remove_file(entry.path());
+            }
+        }
+    }
+}
+
 /// Crops a square avatar from `src_path` with `zoom` (1.0..=4.0) and normalized pan (`-1.0..=1.0`),
-/// saving a 256x256 avatar PNG and a softly blurred 320x320 atmospheric backdrop PNG under `personas_dir/avatars/`.
+/// saving a 256x256 avatar PNG and a softly blurred 320x320 atmospheric backdrop PNG with a unique
+/// timestamped filename under `personas_dir/avatars/` so GPUI never serves stale cached paths.
 pub fn crop_and_save_avatar(
     src_path: &Path,
     personas_dir: &Path,
@@ -302,12 +471,18 @@ pub fn crop_and_save_avatar(
     pan_x: f32,
     pan_y: f32,
 ) -> io::Result<(String, String)> {
-    let img = image::open(src_path).map_err(|e| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("Не удалось открыть изображение: {e}"),
-        )
-    })?;
+    let img = decode_image_any(src_path)?;
+    crop_and_save_loaded_image(&img, personas_dir, slug, zoom, pan_x, pan_y)
+}
+
+pub fn crop_and_save_loaded_image(
+    img: &DynamicImage,
+    personas_dir: &Path,
+    slug: &str,
+    zoom: f32,
+    pan_x: f32,
+    pan_y: f32,
+) -> io::Result<(String, String)> {
     let width = img.width().max(1);
     let height = img.height().max(1);
     let base_side = width.min(height) as f32;
@@ -325,7 +500,7 @@ pub fn crop_and_save_avatar(
         .round()
         .clamp(0.0, height.saturating_sub(crop_side) as f32) as u32;
 
-    let cropped = image::imageops::crop_imm(&img, x, y, crop_side, crop_side).to_image();
+    let cropped = image::imageops::crop_imm(img, x, y, crop_side, crop_side).to_image();
     let avatar_img = image::imageops::resize(&cropped, 256, 256, FilterType::Lanczos3);
     let bg_small = image::imageops::resize(&cropped, 320, 320, FilterType::Triangle);
     let bg_blurred = image::imageops::blur(&bg_small, 18.0);
@@ -334,8 +509,14 @@ pub fn crop_and_save_avatar(
     fs::create_dir_all(&avatars_dir)?;
 
     let safe_slug = sanitize_persona_slug(slug);
-    let avatar_rel = format!("avatars/persona_{safe_slug}.png");
-    let bg_rel = format!("avatars/persona_{safe_slug}_bg.png");
+    let uniq_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let av_fname = format!("persona_{safe_slug}_{uniq_ms}.png");
+    let bg_fname = format!("persona_{safe_slug}_{uniq_ms}_bg.png");
+    let avatar_rel = format!("avatars/{av_fname}");
+    let bg_rel = format!("avatars/{bg_fname}");
 
     avatar_img
         .save(personas_dir.join(&avatar_rel))
@@ -344,13 +525,14 @@ pub fn crop_and_save_avatar(
         .save(personas_dir.join(&bg_rel))
         .map_err(|e| io::Error::other(format!("Не удалось сохранить фон: {e}")))?;
 
+    cleanup_old_avatars(&avatars_dir, &safe_slug, Some(&av_fname), Some(&bg_fname));
+
     Ok((avatar_rel, bg_rel))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn creates_and_loads_default_persona_and_frontmatter() {
@@ -382,25 +564,50 @@ mod tests {
         assert_eq!(saved.display_name, "Akane");
         assert_eq!(saved.age.as_deref(), Some("21"));
         assert_eq!(saved.character.as_deref(), Some("Спокойная и ироничная"));
-        assert!(saved.system_prompt.contains("Возраст: 21"));
+        assert_eq!(saved.modifiers.as_deref(), Some("Отвечай кратко"));
 
-        let loaded = load_persona(&dir, "Akane").unwrap();
-        assert_eq!(loaded.display_name, "Akane");
+        // Verify the file on disk has NO duplicate +++ TOML block
+        let raw_on_disk = fs::read_to_string(&saved.path).unwrap();
+        assert!(!raw_on_disk.contains("+++"));
+        assert_eq!(raw_on_disk.matches("Спокойная и ироничная").count(), 1);
+
+        // Saving a second time after editing must not duplicate headers
+        let resaved = save_structured_persona(
+            &dir,
+            &PersonaSaveInput {
+                existing_file_stem: Some(saved.name.clone()),
+                display_name: saved.display_name.clone(),
+                age: saved.age.clone().unwrap_or_default(),
+                character: saved.character.clone().unwrap_or_default(),
+                modifiers: saved.modifiers.clone().unwrap_or_default(),
+                avatar_rel: None,
+                avatar_bg_rel: None,
+            },
+        )
+        .unwrap();
+        let raw_resaved = fs::read_to_string(&resaved.path).unwrap();
+        assert_eq!(raw_resaved.matches("# Персона:").count(), 1);
+        assert_eq!(resaved.modifiers.as_deref(), Some("Отвечай кратко"));
 
         let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
-    fn crops_and_saves_avatar_and_blurred_backdrop() {
+    fn crops_and_saves_avatar_even_with_mismatched_extension() {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
         let dir = std::env::temp_dir().join(format!("snarta_crop_{nanos}"));
         fs::create_dir_all(&dir).unwrap();
-        let src = dir.join("src.png");
+        // Save PNG bytes into a file named `.jpg` to simulate web/Telegram extension mismatch
+        let src = dir.join("mismatched.jpg");
         let img = image::RgbaImage::from_pixel(400, 300, image::Rgba([200, 120, 80, 255]));
-        img.save(&src).unwrap();
+        let mut png_bytes = Vec::new();
+        DynamicImage::ImageRgba8(img)
+            .write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png)
+            .unwrap();
+        fs::write(&src, &png_bytes).unwrap();
 
         let (av_rel, bg_rel) = crop_and_save_avatar(&src, &dir, "Akane", 1.5, 0.25, -0.25).unwrap();
         assert!(dir.join(&av_rel).is_file());

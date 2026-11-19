@@ -1,20 +1,25 @@
 use crate::gui::anim::avatar::render_avatar_circle;
 use crate::gui::icons::icons;
 use crate::gui::state::AppState;
-use crate::gui::views::MainWindow;
 use crate::gui::theme::{
     COLOR_ACCENT_ORANGE, COLOR_ACCENT_ORANGE_MUTED, COLOR_BG_CANVAS, COLOR_BORDER_GLASS,
     COLOR_BORDER_GLASS_STRONG, COLOR_GLASS_MODAL, COLOR_GLASS_SURFACE, COLOR_TEXT_MUTED,
     COLOR_TEXT_PRIMARY,
 };
-use crate::persona::{Persona, PersonaSaveInput, crop_and_save_avatar, sanitize_persona_slug};
+use crate::gui::views::MainWindow;
+use crate::persona::{
+    Persona, PersonaSaveInput, crop_and_save_loaded_image, decode_image_any,
+    dynamic_image_to_gpui_png, load_gpui_png, sanitize_persona_slug,
+};
 use crate::vision;
 use gpui::InteractiveElement as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
 use gpui_component::input::{Input, InputState, Textarea, TextareaState};
 use gpui_component::{Sizable, Size, h_flex, v_flex};
+use image::DynamicImage;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,8 +38,9 @@ pub struct PersonasModal {
     modifiers_input: Entity<TextareaState>,
     avatar_rel: Option<String>,
     avatar_bg_rel: Option<String>,
-    avatar_preview_path: Option<PathBuf>,
-    crop_src_path: Option<PathBuf>,
+    avatar_preview_img: Option<Arc<gpui::Image>>,
+    crop_src_img: Option<DynamicImage>,
+    crop_preview_img: Option<Arc<gpui::Image>>,
     crop_zoom: f32,
     crop_pan_x: f32,
     crop_pan_y: f32,
@@ -68,8 +74,9 @@ impl PersonasModal {
             modifiers_input,
             avatar_rel: None,
             avatar_bg_rel: None,
-            avatar_preview_path: None,
-            crop_src_path: None,
+            avatar_preview_img: None,
+            crop_src_img: None,
+            crop_preview_img: None,
             crop_zoom: 1.0,
             crop_pan_x: 0.0,
             crop_pan_y: 0.0,
@@ -84,12 +91,22 @@ impl PersonasModal {
     pub fn poll_file_picker(&mut self) -> bool {
         let mut updated = false;
         while let Ok(path) = self.pick_rx.try_recv() {
-            self.crop_src_path = Some(path);
-            self.crop_zoom = 1.2;
-            self.crop_pan_x = 0.0;
-            self.crop_pan_y = 0.0;
-            self.error_msg = None;
-            self.mode = PersonasViewMode::Cropper;
+            match decode_image_any(&path)
+                .and_then(|decoded| dynamic_image_to_gpui_png(&decoded).map(|gpui_img| (decoded, gpui_img)))
+            {
+                Ok((decoded, gpui_img)) => {
+                    self.crop_src_img = Some(decoded);
+                    self.crop_preview_img = Some(gpui_img);
+                    self.crop_zoom = 1.2;
+                    self.crop_pan_x = 0.0;
+                    self.crop_pan_y = 0.0;
+                    self.error_msg = None;
+                    self.mode = PersonasViewMode::Cropper;
+                }
+                Err(e) => {
+                    self.error_msg = Some(format!("Ошибка загрузки фото: {e}"));
+                }
+            }
             updated = true;
         }
         updated
@@ -107,13 +124,20 @@ impl PersonasModal {
             .update(cx, |s, cx| s.set_value("", window, cx));
         self.avatar_rel = None;
         self.avatar_bg_rel = None;
-        self.avatar_preview_path = None;
-        self.crop_src_path = None;
+        self.avatar_preview_img = None;
+        self.crop_src_img = None;
+        self.crop_preview_img = None;
         self.error_msg = None;
         self.mode = PersonasViewMode::Editor;
     }
 
-    fn start_edit(&mut self, p: &Persona, personas_dir: &std::path::Path, window: &mut Window, cx: &mut App) {
+    fn start_edit(
+        &mut self,
+        p: &Persona,
+        personas_dir: &std::path::Path,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         self.editing_stem = Some(p.name.clone());
         self.name_input
             .update(cx, |s, cx| s.set_value(p.display_name.clone(), window, cx));
@@ -131,15 +155,9 @@ impl PersonasModal {
             )
         });
         self.modifiers_input.update(cx, |s, cx| {
-            s.set_value(
-                p.modifiers
-                    .clone()
-                    .unwrap_or_else(|| p.system_prompt.clone()),
-                window,
-                cx,
-            )
+            s.set_value(p.modifiers.clone().unwrap_or_default(), window, cx)
         });
-        self.avatar_preview_path = p.avatar_path.clone();
+        self.avatar_preview_img = p.avatar_image.clone();
         self.avatar_rel = p.avatar_path.as_ref().and_then(|ap| {
             ap.strip_prefix(personas_dir)
                 .ok()
@@ -150,7 +168,8 @@ impl PersonasModal {
                 .ok()
                 .map(|r| r.to_string_lossy().replace('\\', "/"))
         });
-        self.crop_src_path = None;
+        self.crop_src_img = None;
+        self.crop_preview_img = None;
         self.error_msg = None;
         self.mode = PersonasViewMode::Editor;
     }
@@ -211,7 +230,7 @@ impl PersonasModal {
                                                     "Выберите персону или создайте новую в формате persona_Name.md"
                                                 }
                                                 PersonasViewMode::Editor => {
-                                                    "Имя, возраст, характер и модификаторы сохраняются в .md"
+                                                    "Имя, возраст, характер и модификаторы сохраняются в единый .md"
                                                 }
                                                 PersonasViewMode::Cropper => {
                                                     "Перетащите фото и настройте масштаб для круглой аватарки"
@@ -317,7 +336,7 @@ impl PersonasModal {
                     _ => String::new(),
                 };
                 let prompt_preview = {
-                    let clean = p.system_prompt.trim();
+                    let clean = p.modifiers.as_deref().unwrap_or(&p.system_prompt).trim();
                     let chars: Vec<char> = clean.chars().collect();
                     if chars.len() > 180 {
                         format!("{}...", chars[..180].iter().collect::<String>())
@@ -369,7 +388,7 @@ impl PersonasModal {
                                     })
                                     .child(render_avatar_circle(
                                         &display,
-                                        p.avatar_path.as_deref(),
+                                        p.avatar_image.as_ref(),
                                         40.0,
                                     ))
                                     .child(
@@ -490,7 +509,7 @@ impl PersonasModal {
                     .border_color(COLOR_BORDER_GLASS)
                     .child(render_avatar_circle(
                         display_for_badge,
-                        self.avatar_preview_path.as_deref(),
+                        self.avatar_preview_img.as_ref(),
                         68.0,
                     ))
                     .child(
@@ -528,7 +547,7 @@ impl PersonasModal {
                                                 }
                                             }),
                                     )
-                                    .children(self.avatar_preview_path.is_some().then(|| {
+                                    .children(self.avatar_preview_img.is_some().then(|| {
                                         Button::new("clear-avatar-photo-btn")
                                             .ghost()
                                             .with_size(Size::Small)
@@ -537,7 +556,9 @@ impl PersonasModal {
                                             .on_click(cx.listener(|this, _, _, cx| {
                                                 this.personas_modal.avatar_rel = None;
                                                 this.personas_modal.avatar_bg_rel = None;
-                                                this.personas_modal.avatar_preview_path = None;
+                                                this.personas_modal.avatar_preview_img = None;
+                                                this.personas_modal.crop_src_img = None;
+                                                this.personas_modal.crop_preview_img = None;
                                                 cx.notify();
                                             }))
                                     })),
@@ -657,7 +678,7 @@ impl PersonasModal {
         personas_dir: &std::path::Path,
         cx: &mut Context<MainWindow>,
     ) -> impl IntoElement {
-        let src_path = self.crop_src_path.clone();
+        let preview_img = self.crop_preview_img.clone();
         let zoom = self.crop_zoom;
         let pan_x = self.crop_pan_x;
         let pan_y = self.crop_pan_y;
@@ -669,13 +690,7 @@ impl PersonasModal {
 
         let name_val = self.name_input.read(cx).value().to_string();
         let slug = if name_val.trim().is_empty() {
-            format!(
-                "custom_{}",
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_secs())
-                    .unwrap_or(0)
-            )
+            "custom".to_string()
         } else {
             sanitize_persona_slug(&name_val)
         };
@@ -724,8 +739,8 @@ impl PersonasModal {
                             pm.crop_last_pos = Some(ev.position);
                         }
                     }))
-                    .children(src_path.clone().map(|p| {
-                        img(p)
+                    .children(preview_img.map(|arc_img| {
+                        img(arc_img)
                             .absolute()
                             .left(px(offset_x))
                             .top(px(offset_y))
@@ -812,9 +827,9 @@ impl PersonasModal {
                             .label("Применить кадрирование")
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 let pm = &mut this.personas_modal;
-                                if let Some(ref src) = pm.crop_src_path {
-                                    match crop_and_save_avatar(
-                                        src,
+                                if let Some(ref src_img) = pm.crop_src_img {
+                                    match crop_and_save_loaded_image(
+                                        src_img,
                                         &personas_dir_owned,
                                         &slug,
                                         pm.crop_zoom,
@@ -822,8 +837,8 @@ impl PersonasModal {
                                         pm.crop_pan_y,
                                     ) {
                                         Ok((av_rel, bg_rel)) => {
-                                            pm.avatar_preview_path =
-                                                Some(personas_dir_owned.join(&av_rel));
+                                            pm.avatar_preview_img =
+                                                load_gpui_png(&personas_dir_owned.join(&av_rel));
                                             pm.avatar_rel = Some(av_rel);
                                             pm.avatar_bg_rel = Some(bg_rel);
                                             pm.error_msg = None;

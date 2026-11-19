@@ -284,10 +284,9 @@ impl Render for MainWindow {
         let backdrop_img = {
             let st = self.state.read(cx);
             st.persona
-                .avatar_bg_path
+                .avatar_bg_image
                 .clone()
-                .or_else(|| st.persona.avatar_path.clone())
-                .filter(|p| p.is_file())
+                .or_else(|| st.persona.avatar_image.clone())
         };
 
         let should_scroll = self.state.update(cx, |s, _| {

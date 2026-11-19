@@ -8,16 +8,19 @@ use crate::gui::theme::{
     COLOR_GLASS_SURFACE, COLOR_GLASS_TOPBAR, COLOR_TEXT_MUTED, COLOR_TEXT_PRIMARY, TOPBAR_HEIGHT,
     vram_status_color,
 };
+use gpui::prelude::FluentBuilder as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
-use gpui_component::{Sizable, Size, TitleBar, h_flex, v_flex};
+use gpui_component::{
+    Icon, IconName, InteractiveElementExt as _, Sizable, Size, h_flex, v_flex,
+};
 
 pub struct TopBar;
 
 impl TopBar {
     pub fn render(
         state_entity: &Entity<AppState>,
-        _window: &mut Window,
+        window: &mut Window,
         cx: &mut App,
     ) -> impl IntoElement {
         let state = state_entity.read(cx);
@@ -27,7 +30,7 @@ impl TopBar {
             .map(|m| m.file_name.trim_end_matches(".gguf").to_string())
             .unwrap_or_else(|| "Модель не выбрана".to_string());
         let persona_display = state.persona.display_name.clone();
-        let persona_avatar = state.persona.avatar_path.clone();
+        let persona_avatar_img = state.persona.avatar_image.clone();
 
         let vram_used = state.vram.used_mib;
         let vram_total = state.vram.total_mib;
@@ -39,7 +42,9 @@ impl TopBar {
         let server_status = state.server_status.clone();
 
         let status_dot = match &server_status {
-            ServerStatus::Running { .. } => render_server_online_dot("topbar-srv-dot").into_any_element(),
+            ServerStatus::Running { .. } => {
+                render_server_online_dot("topbar-srv-dot").into_any_element()
+            }
             ServerStatus::Starting { .. } => div()
                 .w(px(7.0))
                 .h(px(7.0))
@@ -62,169 +67,252 @@ impl TopBar {
 
         let vram_total_gb = (vram_total + 512) / 1024;
         let vram_used_gb = vram_used as f64 / 1024.0;
+        let is_maximized = window.is_maximized();
+        let is_windows = cfg!(target_os = "windows");
+        let is_linux = cfg!(target_os = "linux");
 
-        TitleBar::new()
+        h_flex()
+            .id("custom-topbar")
             .h(TOPBAR_HEIGHT)
+            .w_full()
+            .items_center()
             .bg(COLOR_GLASS_TOPBAR)
             .border_b_1()
             .border_color(COLOR_BORDER_GLASS)
+            // 1. Left interactive controls (NO WindowControlArea::Drag on or above these buttons)
             .child(
                 h_flex()
-                    .w_full()
                     .items_center()
-                    .justify_between()
-                    .pr_2()
+                    .gap_2()
+                    .pl_3()
+                    .flex_shrink_0()
                     .child(
-                        h_flex()
-                            .items_center()
-                            .gap_2()
-                            .min_w_0()
-                            .child(
-                                Button::new("toggle-sidebar")
-                                    .ghost()
-                                    .with_size(Size::Small)
-                                    .icon(if sidebar_open {
-                                        icons::sidebar_close()
-                                    } else {
-                                        icons::sidebar_open()
-                                    })
-                                    .tooltip(if sidebar_open {
-                                        "Скрыть боковую панель"
-                                    } else {
-                                        "Показать боковую панель"
-                                    })
-                                    .on_click({
-                                        let state_entity = state_entity.clone();
-                                        move |_, _, cx| {
-                                            state_entity.update(cx, |s, cx| {
-                                                s.sidebar_open = !s.sidebar_open;
-                                                cx.notify();
-                                            });
-                                        }
-                                    }),
-                            )
-                            .child(
-                                h_flex()
-                                    .items_center()
-                                    .gap_1p5()
-                                    .px_1()
-                                    .child(
-                                        div()
-                                            .w(px(8.0))
-                                            .h(px(8.0))
-                                            .rounded_full()
-                                            .bg(COLOR_ACCENT_ORANGE),
-                                    )
-                                    .child(
-                                        div()
-                                            .font_weight(FontWeight::BOLD)
-                                            .text_size(rems(0.92))
-                                            .text_color(COLOR_TEXT_PRIMARY)
-                                            .child("Snarta"),
-                                    ),
-                            )
-                            .child(
-                                Button::new("model-selector")
-                                    .ghost()
-                                    .with_size(Size::Small)
-                                    .icon(icons::cpu())
-                                    .label(model_name)
-                                    .tooltip("Выбор и статус локальной модели GGUF")
-                                    .on_click({
-                                        let state_entity = state_entity.clone();
-                                        move |_, _, cx| {
-                                            state_entity.update(cx, |s, cx| {
-                                                s.system_menu_open = false;
-                                                s.open_modal(ActiveModal::Models);
-                                                cx.notify();
-                                            });
-                                        }
-                                    }),
-                            )
-                            .child(
-                                Button::new("persona-selector")
-                                    .ghost()
-                                    .with_size(Size::Small)
-                                    .tooltip("Персоны и аватар")
-                                    .child(
-                                        h_flex()
-                                            .items_center()
-                                            .gap_1p5()
-                                            .child(render_avatar_circle(
-                                                &persona_display,
-                                                persona_avatar.as_deref(),
-                                                18.0,
-                                            ))
-                                            .child(persona_display),
-                                    )
-                                    .on_click({
-                                        let state_entity = state_entity.clone();
-                                        move |_, _, cx| {
-                                            state_entity.update(cx, |s, cx| {
-                                                s.system_menu_open = false;
-                                                s.open_modal(ActiveModal::Personas);
-                                                cx.notify();
-                                            });
-                                        }
-                                    }),
-                            ),
+                        Button::new("toggle-sidebar")
+                            .ghost()
+                            .with_size(Size::Small)
+                            .icon(if sidebar_open {
+                                icons::sidebar_close()
+                            } else {
+                                icons::sidebar_open()
+                            })
+                            .tooltip(if sidebar_open {
+                                "Скрыть боковую панель"
+                            } else {
+                                "Показать боковую панель"
+                            })
+                            .on_click({
+                                let state_entity = state_entity.clone();
+                                move |_, _, cx| {
+                                    state_entity.update(cx, |s, cx| {
+                                        s.sidebar_open = !s.sidebar_open;
+                                        cx.notify();
+                                    });
+                                }
+                            }),
                     )
                     .child(
                         h_flex()
                             .items_center()
                             .gap_1p5()
-                            .flex_shrink_0()
+                            .px_1()
                             .child(
-                                Button::new("system-menu-toggle")
-                                    .ghost()
-                                    .with_size(Size::Small)
-                                    .bg(if system_menu_open {
-                                        COLOR_BG_ELEVATED
-                                    } else {
-                                        COLOR_GLASS_SURFACE
-                                    })
-                                    .border_1()
-                                    .border_color(if system_menu_open {
-                                        COLOR_BORDER_GLASS_STRONG
-                                    } else {
-                                        COLOR_BORDER_GLASS
-                                    })
-                                    .tooltip("Сервер, очистка памяти, VRAM и ОЗУ")
+                                div()
+                                    .w(px(8.0))
+                                    .h(px(8.0))
+                                    .rounded_full()
+                                    .bg(COLOR_ACCENT_ORANGE),
+                            )
+                            .child(
+                                div()
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_size(rems(0.92))
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .child("Snarta"),
+                            ),
+                    )
+                    .child(
+                        Button::new("model-selector")
+                            .secondary()
+                            .outline()
+                            .with_size(Size::Small)
+                            .icon(icons::cpu())
+                            .label(model_name)
+                            .tooltip("Выбор и статус локальной модели GGUF")
+                            .on_click({
+                                let state_entity = state_entity.clone();
+                                move |_, _, cx| {
+                                    state_entity.update(cx, |s, cx| {
+                                        s.system_menu_open = false;
+                                        s.open_modal(ActiveModal::Models);
+                                        cx.notify();
+                                    });
+                                }
+                            }),
+                    )
+                    .child(
+                        Button::new("persona-selector")
+                            .secondary()
+                            .outline()
+                            .with_size(Size::Small)
+                            .tooltip("Персоны и аватар")
+                            .child(
+                                h_flex()
+                                    .items_center()
+                                    .gap_1p5()
+                                    .child(render_avatar_circle(
+                                        &persona_display,
+                                        persona_avatar_img.as_ref(),
+                                        18.0,
+                                    ))
+                                    .child(persona_display),
+                            )
+                            .on_click({
+                                let state_entity = state_entity.clone();
+                                move |_, _, cx| {
+                                    state_entity.update(cx, |s, cx| {
+                                        s.system_menu_open = false;
+                                        s.open_modal(ActiveModal::Personas);
+                                        cx.notify();
+                                    });
+                                }
+                            }),
+                    ),
+            )
+            // 2. Dedicated middle drag spacer (ONLY this empty region has WindowControlArea::Drag)
+            .child(
+                div()
+                    .id("topbar-drag-spacer")
+                    .flex_1()
+                    .h_full()
+                    .min_w(px(24.0))
+                    .window_control_area(WindowControlArea::Drag)
+                    .when(is_linux, |this| {
+                        this.on_double_click(|_, window, _| window.zoom_window())
+                            .on_mouse_down(MouseButton::Left, |_, window, _| {
+                                window.start_window_move();
+                            })
+                    }),
+            )
+            // 3. Right cluster: System dropdown button + native-style Window Controls (— □ ×)
+            .child(
+                h_flex()
+                    .items_center()
+                    .h_full()
+                    .gap_2()
+                    .flex_shrink_0()
+                    .child(
+                        Button::new("system-menu-toggle")
+                            .secondary()
+                            .outline()
+                            .with_size(Size::Small)
+                            .tooltip("Сервер, очистка памяти, VRAM и ОЗУ")
+                            .child(
+                                h_flex()
+                                    .items_center()
+                                    .gap_1p5()
+                                    .child(status_dot)
                                     .child(
-                                        h_flex()
-                                            .items_center()
-                                            .gap_1p5()
-                                            .child(status_dot)
-                                            .child(
-                                                div()
-                                                    .text_size(rems(0.76))
-                                                    .text_color(COLOR_TEXT_PRIMARY)
-                                                    .child(format!(
-                                                        "Система · {vram_used_gb:.1}/{vram_total_gb}G"
-                                                    )),
-                                            )
-                                            .child(
-                                                div()
-                                                    .w(px(6.0))
-                                                    .h(px(6.0))
-                                                    .rounded_full()
-                                                    .bg(vram_color),
-                                            )
-                                            .child(if system_menu_open {
-                                                icons::chevron_down().with_size(Size::XSmall)
-                                            } else {
-                                                icons::chevron_right().with_size(Size::XSmall)
-                                            }),
+                                        div()
+                                            .text_size(rems(0.76))
+                                            .text_color(COLOR_TEXT_PRIMARY)
+                                            .child(format!(
+                                                "Система · {vram_used_gb:.1}/{vram_total_gb}G"
+                                            )),
                                     )
-                                    .on_click({
-                                        let state_entity = state_entity.clone();
-                                        move |_, _, cx| {
-                                            state_entity.update(cx, |s, cx| {
-                                                s.system_menu_open = !s.system_menu_open;
-                                                cx.notify();
-                                            });
-                                        }
+                                    .child(
+                                        div()
+                                            .w(px(6.0))
+                                            .h(px(6.0))
+                                            .rounded_full()
+                                            .bg(vram_color),
+                                    )
+                                    .child(if system_menu_open {
+                                        icons::chevron_down().with_size(Size::XSmall)
+                                    } else {
+                                        icons::chevron_right().with_size(Size::XSmall)
                                     }),
+                            )
+                            .on_click({
+                                let state_entity = state_entity.clone();
+                                move |_, _, cx| {
+                                    state_entity.update(cx, |s, cx| {
+                                        s.system_menu_open = !s.system_menu_open;
+                                        cx.notify();
+                                    });
+                                }
+                            }),
+                    )
+                    .child(
+                        div()
+                            .w(px(1.0))
+                            .h(px(18.0))
+                            .bg(COLOR_BORDER_GLASS_STRONG),
+                    )
+                    .child(
+                        h_flex()
+                            .id("window-controls-bar")
+                            .items_center()
+                            .h_full()
+                            .child(
+                                div()
+                                    .id("win-btn-minimize")
+                                    .flex()
+                                    .w(px(38.0))
+                                    .h_full()
+                                    .items_center()
+                                    .justify_center()
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .hover(|s| s.bg(COLOR_BG_ELEVATED))
+                                    .when(is_windows, |this| {
+                                        this.window_control_area(WindowControlArea::Min)
+                                    })
+                                    .on_click(|_, window, _| {
+                                        window.minimize_window();
+                                    })
+                                    .child(Icon::new(IconName::WindowMinimize).small()),
+                            )
+                            .child(
+                                div()
+                                    .id("win-btn-maximize")
+                                    .flex()
+                                    .w(px(38.0))
+                                    .h_full()
+                                    .items_center()
+                                    .justify_center()
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .hover(|s| s.bg(COLOR_BG_ELEVATED))
+                                    .when(is_windows, |this| {
+                                        this.window_control_area(WindowControlArea::Max)
+                                    })
+                                    .on_click(|_, window, _| {
+                                        window.zoom_window();
+                                    })
+                                    .child(
+                                        Icon::new(if is_maximized {
+                                            IconName::WindowRestore
+                                        } else {
+                                            IconName::WindowMaximize
+                                        })
+                                        .small(),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .id("win-btn-close")
+                                    .flex()
+                                    .w(px(40.0))
+                                    .h_full()
+                                    .items_center()
+                                    .justify_center()
+                                    .text_color(COLOR_TEXT_PRIMARY)
+                                    .hover(|s| s.bg(COLOR_DANGER).text_color(gpui::white()))
+                                    .when(is_windows, |this| {
+                                        this.window_control_area(WindowControlArea::Close)
+                                    })
+                                    .on_click(|_, window, _| {
+                                        window.remove_window();
+                                    })
+                                    .child(Icon::new(IconName::WindowClose).small()),
                             ),
                     ),
             )

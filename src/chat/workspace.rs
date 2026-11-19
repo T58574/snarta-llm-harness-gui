@@ -40,6 +40,8 @@ impl Workspace {
                 modifiers: None,
                 avatar_path: None,
                 avatar_bg_path: None,
+                avatar_image: None,
+                avatar_bg_image: None,
             });
 
         let available_models = gguf::scan_models_dir(&paths.models_dir()).unwrap_or_default();

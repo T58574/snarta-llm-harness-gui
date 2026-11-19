@@ -6,12 +6,13 @@ use crate::gui::theme::{
 use crate::persona::Persona;
 use gpui::*;
 use gpui_component::{h_flex, v_flex};
-use std::path::Path;
+use std::sync::Arc;
 
-/// Renders a circular photo avatar of `size_px` (or a clean initial badge if no photo is set).
+/// Renders a circular photo avatar of `size_px` from an in-memory content-hashed `Arc<gpui::Image>`
+/// (or a clean initial badge if no photo is set).
 pub fn render_avatar_circle(
     display_name: &str,
-    avatar_path: Option<&Path>,
+    avatar_image: Option<&Arc<gpui::Image>>,
     size_px: f32,
 ) -> AnyElement {
     let initial = display_name
@@ -21,7 +22,7 @@ pub fn render_avatar_circle(
         .to_uppercase()
         .to_string();
 
-    if let Some(path) = avatar_path.filter(|p| p.is_file()) {
+    if let Some(image_arc) = avatar_image {
         div()
             .w(px(size_px))
             .h(px(size_px))
@@ -32,7 +33,7 @@ pub fn render_avatar_circle(
             .border_color(COLOR_BORDER_GLASS)
             .bg(COLOR_GLASS_SURFACE)
             .child(
-                img(path.to_path_buf())
+                img(image_arc.clone())
                     .w(px(size_px))
                     .h(px(size_px))
                     .object_fit(ObjectFit::Cover),
@@ -101,7 +102,7 @@ pub fn render_sidebar_avatar(
         })
         .child(render_avatar_circle(
             &persona.display_name,
-            persona.avatar_path.as_deref(),
+            persona.avatar_image.as_ref(),
             42.0,
         ))
         .child(
@@ -162,7 +163,7 @@ pub fn render_hero_avatar(persona: &Persona, state_entity: &Entity<AppState>) ->
                 })
                 .child(render_avatar_circle(
                     &persona.display_name,
-                    persona.avatar_path.as_deref(),
+                    persona.avatar_image.as_ref(),
                     92.0,
                 )),
         )

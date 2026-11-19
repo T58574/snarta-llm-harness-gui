@@ -263,7 +263,7 @@ impl ChatView {
                                 .gap_2()
                                 .child(render_avatar_circle(
                                     &persona.display_name,
-                                    persona.avatar_path.as_deref(),
+                                    persona.avatar_image.as_ref(),
                                     26.0,
                                 ))
                                 .child(
@@ -529,7 +529,7 @@ impl ChatView {
                     .px_1()
                     .child(render_avatar_circle(
                         &persona.display_name,
-                        persona.avatar_path.as_deref(),
+                        persona.avatar_image.as_ref(),
                         26.0,
                     ))
                     .child(
